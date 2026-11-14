@@ -10,7 +10,8 @@ const manifest = self.__WB_MANIFEST
 precacheAndRoute(manifest)
 cleanupOutdatedCaches()
 
-// [SPEC-3.3] autoUpdate: a new worker takes over as soon as it is installed.
+// [SPEC-3.3] autoUpdate: a new worker takes over as soon as it is installed. The page reloads
+// on it only when the menu shows with no app running (UpdateGate in src/pwa/update.ts).
 void self.skipWaiting()
 clientsClaim()
 

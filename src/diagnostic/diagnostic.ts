@@ -1,7 +1,7 @@
 // [SPEC-10] Diagnostic page: one row per point to check on the teacher's Mac.
 import { isInstalledApp } from '../pwa/display-mode'
 import { canInstall, installPromptReceived, onInstallAvailabilityChange, promptInstall } from '../pwa/install'
-import { requestPrecacheReport } from '../pwa/precache-check'
+import { checkOfflineCache } from '../pwa/precache-check'
 import { errorMessage } from '../errors'
 import { getSwRegistrationState, onSwRegistrationChange } from '../pwa/register'
 import { requestPersistentStorage } from '../pwa/storage'
@@ -169,9 +169,7 @@ function watchServiceWorker(swRow: Row, cacheRow: Row): Dispose {
 
   const check = async () => {
     cacheRow.set('vérification…')
-    const reg = await navigator.serviceWorker.ready
-    if (!reg.active) throw new Error('Aucun service worker actif.')
-    const result = await requestPrecacheReport(reg.active)
+    const result = await checkOfflineCache()
     if (result.missing.length === 0) cacheRow.set(`complet : ${result.expected} fichiers sur ${result.expected}`, 'ok')
     else
       cacheRow.set(

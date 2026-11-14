@@ -13,6 +13,8 @@ import { SwitchableLink } from './host/switchable-link'
 import { listenForInstallPrompt } from './pwa/install'
 import { registerServiceWorker } from './pwa/register'
 import { requestPersistentStorage } from './pwa/storage'
+import { announceUpdateInstalled, UpdateGate, versionChanged } from './pwa/update'
+import { VERSION_LABEL } from './version'
 import { browserProjectionEnv, Projection, type ProjectionState } from './screens/projection'
 import { parseSceneHash, type SceneParams } from './screens/screen-api'
 import { SceneDisplay, startScene } from './scene/scene'
@@ -21,6 +23,8 @@ import { SettingsStore } from './settings/settings'
 const root = document.getElementById('app')
 if (!root) throw new Error('#app element missing')
 const appRoot: HTMLElement = root
+/** [SPEC-3.4] How long « Mise à jour installée » stays on the menu. */
+const UPDATE_INSTALLED_MS = 8000
 
 /** The host and the services it runs on, built the same way in both windows. */
 function createHost(display: HostDisplay, onProblem: (message: string) => void) {
@@ -103,7 +107,16 @@ function runControl(): void {
     }
   }
 
-  registerServiceWorker() // [SPEC-3.1]
+  // [SPEC-3.4] « Mise à jour installée » after a launch on a version other than the previous one.
+  try {
+    if (versionChanged(localStorage, VERSION_LABEL)) announceUpdateInstalled(UPDATE_INSTALLED_MS)
+  } catch (error) {
+    showError(`version précédente illisible : ${errorMessage(error)}`)
+  }
+  // [SPEC-3.3] A new version reloads the page only on the menu, with no app running.
+  const updateGate = new UpdateGate(() => location.reload())
+  link.subscribe((state) => updateGate.setAppActive(state.phase !== 'menu'))
+  registerServiceWorker(() => updateGate.newVersion()) // [SPEC-3.1] [SPEC-3.3]
   listenForInstallPrompt() // [SPEC-3.5]
   void requestPersistentStorage() // [SPEC-3.2]
 
@@ -112,9 +125,12 @@ function runControl(): void {
 
   async function route(): Promise<void> {
     const id = ++renderId
+    const hash = location.hash
+    const onMenu = hash !== '#diagnostic' && hash !== '#scene-test'
+    // Decided before loading the menu: after an update, the old menu file is gone [SPEC-3.3].
+    if (updateGate.showingMenu(onMenu)) return
     dispose?.()
     dispose = undefined
-    const hash = location.hash
     let next: () => void
     // Views are loaded on demand so that PixiJS is not part of the start-up bundle.
     if (hash === '#diagnostic') next = (await import('./diagnostic/diagnostic')).renderDiagnostic(appRoot)

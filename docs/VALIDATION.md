@@ -66,13 +66,15 @@ Cliquez sur « Arrêter le micro ».
 
 ## Étape 5 : mise à jour sans action (V3)
 
-1. Notez la ligne « Version ».
-2. Fermez la fenêtre Proj-Classe et quittez Chrome.
-3. Envoyez-moi « V3 prêt ». Je publie la version de test 0.1.1 et je vous réponds « 0.1.1 en ligne » une fois que je l'ai constatée sur le site.
-4. Wi-Fi actif, lancez Proj-Classe depuis le Dock. Quelques secondes après le lancement, la page peut se recharger d'elle-même une fois : c'est la mise à jour qui s'applique.
-5. Ouvrez « Diagnostic » et lisez la ligne « Version ».
+Toute cette étape se lit sur l'écran d'accueil : la nouvelle version ne s'applique que lorsque l'accueil est affiché, jamais pendant une activité ni sur la page de diagnostic.
 
-**V3** : réussi si la version commence par `0.1.1` dès ce premier lancement. Si elle est encore en 0.1.0, attendez une minute fenêtre ouverte et relisez, puis fermez et relancez une fois : notez à quel moment la version a changé. Un changement au second lancement seulement compte comme un échec de V3.
+1. Sur l'écran d'accueil, notez la version affichée en bas à gauche (par exemple `Version 0.1.2 (abc1234)`).
+2. Fermez la fenêtre Proj-Classe et quittez Chrome.
+3. Envoyez-moi « V3 prêt ». Je publie une version de test et je vous réponds en indiquant son numéro une fois que je l'ai constatée sur le site.
+4. Wi-Fi actif, lancez Proj-Classe depuis le Dock et restez sur l'écran d'accueil sans rien toucher. Quelques secondes après le lancement, la page se recharge d'elle-même une fois et le message « Mise à jour installée » apparaît en haut quelques secondes.
+5. Lisez la version en bas à gauche de l'écran d'accueil.
+
+**V3** : réussi si la version affichée est celle que je vous ai annoncée dès ce premier lancement, avec le message « Mise à jour installée ». Si elle n'a pas changé, attendez une minute sur l'écran d'accueil et relisez, puis fermez et relancez une fois : notez à quel moment la version a changé. Un changement au second lancement seulement compte comme un échec de V3. Si un message rouge « La mise à jour a échoué » apparaît, recopiez-le mot pour mot.
 
 **V1 après mise à jour** : relisez « Autorisation micro » et cliquez sur « Essayer le micro ». Notez s'il indique « accordée » et si une demande d'autorisation apparaît.
 

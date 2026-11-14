@@ -1,4 +1,5 @@
-// [SPEC-3.1] [SPEC-10 V7] Shared between the service worker and the diagnostic page.
+// [SPEC-3.1] [SPEC-3.7] [SPEC-10 V7] Shared between the service worker, the diagnostic page and
+// the offline witness of the menu.
 
 export const PRECACHE_CHECK_REQUEST = 'PRECACHE_CHECK'
 
@@ -26,4 +27,12 @@ export function requestPrecacheReport(worker: ServiceWorker, timeoutMs = 5000): 
     }
     worker.postMessage({ type: PRECACHE_CHECK_REQUEST }, [channel.port2])
   })
+}
+
+/** [SPEC-3.7] [SPEC-10 V7] Precache report of the active service worker, once there is one: the
+ *  single cache check used by the diagnostic page and by the menu. */
+export async function checkOfflineCache(): Promise<PrecacheReport> {
+  const registration = await navigator.serviceWorker.ready
+  if (!registration.active) throw new Error('Aucun service worker actif.')
+  return requestPrecacheReport(registration.active)
 }

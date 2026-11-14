@@ -434,10 +434,96 @@ button:disabled {
   display: block;
 }
 
-.discreet-link {
+/* [SPEC-3.4] [SPEC-3.6] Update messages, under the menu header. */
+.update-installed,
+.update-failure {
+  max-width: 1400px;
+  margin: 0 auto 1.5rem;
+  padding: 0.9rem 1.25rem;
+  border-radius: 1.2rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  white-space: pre-line;
+}
+
+.update-installed {
+  background: var(--cream);
+  color: var(--ok);
+}
+
+.update-failure {
+  background: var(--error);
+  color: #fff;
+}
+
+/* [SPEC-3.4] [SPEC-3.7] [SPEC-3.8] Bottom of the menu: offline witness, version, diagnostic. */
+.menu-footer {
   position: fixed;
-  right: 1rem;
-  bottom: 0.75rem;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.5rem 1rem;
+  background: var(--green-dark);
+}
+
+.offline-witness {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  border-color: var(--cream);
+  background: var(--cream);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.offline-witness::before {
+  content: '';
+  flex: none;
+  width: 0.8em;
+  height: 0.8em;
+  border-radius: 50%;
+  background: var(--warn);
+}
+
+.offline-witness[data-state='ready']::before {
+  background: var(--ok);
+}
+
+.offline-witness[data-state='unavailable'] {
+  color: var(--error);
+}
+
+.offline-witness[data-state='unavailable']::before {
+  background: var(--error);
+}
+
+.offline-witness:focus-visible {
+  outline: 4px solid #f4c430;
+  outline-offset: 2px;
+}
+
+.offline-notice {
+  flex-basis: 100%;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 0.8rem;
+  background: var(--cream);
+  color: var(--ink);
+  font-size: 1.1rem;
+}
+
+.app-version {
+  color: rgb(255 255 255 / 75%);
+  font-size: 0.9rem;
+}
+
+.discreet-link {
+  margin-left: auto;
   color: rgb(255 255 255 / 55%);
   font-size: 0.9rem;
 }

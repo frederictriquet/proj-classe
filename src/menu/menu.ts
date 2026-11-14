@@ -2,10 +2,14 @@
 // thumbnails, driven with the mouse or the keyboard (arrows, Enter). It reads HostState and sends
 // HostCommand only. With two screens it also offers « Projeter », shows where the scene is and,
 // while the scene runs an app, becomes the remote: app in progress, « Retour au menu », settings
-// and live level [SPEC-5.5] [SPEC-7.5].
+// and live level [SPEC-5.5] [SPEC-7.5]. It also shows the version, the update messages and the
+// offline witness [SPEC-3.4] [SPEC-3.6] [SPEC-3.7].
 import type { AppRegistry } from '../apps/registry'
 import { isInstalledApp } from '../pwa/display-mode'
 import { canInstall, onInstallAvailabilityChange, promptInstall } from '../pwa/install'
+import { OFFLINE_NOTICE, offlineLabel, watchOfflineStatus } from '../pwa/offline-status'
+import { getUpdateFailure, onUpdateChange, updateFailureText, updateInstalledRemaining } from '../pwa/update'
+import { VERSION_LABEL } from '../version'
 import { errorMessage } from '../errors'
 import type { HostLink, HostState } from '../host/protocol'
 import { projectionStatus, type Projection, type ProjectionMode, type ProjectionState } from '../screens/projection'
@@ -61,6 +65,36 @@ export function renderMenu(
   simulated.textContent = 'Micro simulé : touches + et −'
   simulated.hidden = true
   header.append(icon, title, actions, installMessage, simulated)
+
+  // [SPEC-3.4] [SPEC-3.6] Update messages for the adult. None without network.
+  const updateInstalled = document.createElement('p')
+  updateInstalled.className = 'update-installed'
+  updateInstalled.setAttribute('role', 'status')
+  updateInstalled.textContent = 'Mise à jour installée'
+  updateInstalled.hidden = true
+  const updateFailure = document.createElement('p')
+  updateFailure.className = 'update-failure'
+  updateFailure.setAttribute('role', 'alert')
+  updateFailure.hidden = true
+
+  // [SPEC-3.4] [SPEC-3.7] [SPEC-3.8] Bottom of the menu: offline witness, version, diagnostic.
+  const footer = document.createElement('footer')
+  footer.className = 'menu-footer'
+  const offlineNotice = document.createElement('p')
+  offlineNotice.className = 'offline-notice'
+  offlineNotice.id = 'offline-notice'
+  offlineNotice.textContent = OFFLINE_NOTICE
+  offlineNotice.hidden = true
+  const witness = button('', 'offline-witness')
+  witness.setAttribute('aria-controls', offlineNotice.id)
+  witness.setAttribute('aria-expanded', 'false')
+  witness.addEventListener('click', () => {
+    offlineNotice.hidden = !offlineNotice.hidden
+    witness.setAttribute('aria-expanded', String(!offlineNotice.hidden))
+  })
+  const version = document.createElement('span')
+  version.className = 'app-version'
+  version.textContent = `Version ${VERSION_LABEL}`
 
   // [SPEC-5.3] [SPEC-5.4] [SPEC-5.6] Where the scene is, and what happened to it.
   const screenBar = document.createElement('div')
@@ -159,10 +193,29 @@ export function renderMenu(
   diagnostic.className = 'discreet-link'
   diagnostic.href = '#diagnostic'
   diagnostic.textContent = 'Diagnostic'
+  footer.append(offlineNotice, witness, version, diagnostic)
 
-  menu.append(header, screenBar, notice, control, grid, empty, diagnostic)
+  menu.append(header, updateInstalled, updateFailure, screenBar, notice, control, grid, empty, footer)
   root.append(menu)
   tiles[0]?.focus()
+
+  const offWitness = watchOfflineStatus((status) => {
+    witness.textContent = offlineLabel(status)
+    witness.dataset.state = status.kind
+  })
+
+  let installedTimer: number | undefined
+  const showUpdate = () => {
+    const failure = getUpdateFailure()
+    updateFailure.hidden = failure === null
+    updateFailure.textContent = failure === null ? '' : updateFailureText(failure, VERSION_LABEL)
+    const remaining = updateInstalledRemaining()
+    updateInstalled.hidden = remaining === 0
+    window.clearTimeout(installedTimer)
+    if (remaining > 0) installedTimer = window.setTimeout(showUpdate, remaining)
+  }
+  showUpdate()
+  const offUpdate = onUpdateChange(showUpdate)
 
   const showInstall = () => {
     install.hidden = isInstalledApp() || !canInstall()
@@ -250,6 +303,9 @@ export function renderMenu(
 
   return () => {
     document.removeEventListener('keydown', onKey)
+    offWitness()
+    offUpdate()
+    window.clearTimeout(installedTimer)
     unsubscribe()
     offProjection?.()
     offInstall()
