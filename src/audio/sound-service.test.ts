@@ -3,7 +3,7 @@ import { ExplainedError } from '../errors'
 import { CALIBRATION_MS, DEFAULT_AMBIENT_DBFS } from './level'
 import { processingReport, processingWarning } from './processing'
 import { isSimulationRequested, listenSimulationKeys, SimulatedSource } from './simulated-source'
-import { CALIBRATION_KEY, SoundService, type CommonSettings, type FrameClock, type SoundReading } from './sound-service'
+import { CALIBRATION_KEY, NO_SIGNAL_TEXT, SoundService, type CommonSettings, type FrameClock, type SoundReading } from './sound-service'
 import type { LevelSource, OpenedSource } from './source'
 
 /** Frame scheduler driven by the test, like requestAnimationFrame. */
@@ -227,6 +227,21 @@ describe('SoundService', () => {
     expect(service.status.warning).toBe('autoGainControl : true')
     lease.release()
     expect(service.status.warning).toBeNull()
+  })
+
+  it('warns after 2 s of exact silence (microphone muted by macOS) and clears it when sound comes back [SPEC-6.6]', async () => {
+    const { service, source, clock } = setup()
+    const fake = source as FakeSource
+    fake.db = -100
+    fake.warning = 'autoGainControl : true'
+    await service.acquire()
+    clock.frames(60) // 1 s
+    expect(service.status.warning).toBe('autoGainControl : true')
+    clock.frames(70)
+    expect(service.status.warning).toBe(`autoGainControl : true\n${NO_SIGNAL_TEXT}`)
+    fake.db = -70
+    clock.frames(1)
+    expect(service.status.warning).toBe('autoGainControl : true')
   })
 
   it('drives the simulated source through the same path [SPEC-6.5]', async () => {

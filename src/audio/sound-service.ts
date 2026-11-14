@@ -75,6 +75,12 @@ export interface CommonSettings {
 /** Key of the calibration in the common settings space [SPEC-6.3] [SPEC-7.1]. */
 export const CALIBRATION_KEY = 'calibration'
 
+/** [SPEC-6.6] A live microphone never gives exact digital silence: after this long at the
+ *  floor, the adult is warned that the microphone sends nothing (muted by macOS, for example). */
+export const NO_SIGNAL_MS = 2000
+export const NO_SIGNAL_TEXT =
+  "Le micro ne renvoie aucun son (silence complet) : la mesure ne veut rien dire. Vérifiez Réglages Système > Confidentialité et sécurité > Micro > Google Chrome, et Réglages Système > Son > Entrée."
+
 interface Recording {
   readings: number[]
   elapsedMs: number
@@ -107,6 +113,9 @@ export class SoundService {
   private reading: SoundReading
   private recording: Recording | undefined
   private calibration: Calibration | undefined
+  /** Time spent at the floor, for the no-signal warning [SPEC-6.6]. */
+  private silentMs = 0
+  private processingWarning: string | null = null
   private current: SoundStatus
   private readonly statusListeners = new Set<(status: SoundStatus) => void>()
   private readonly levelListeners = new Set<(reading: SoundReading) => void>()
@@ -233,7 +242,9 @@ export class SoundService {
         this.opening = undefined
         this.opened = opened
         this.lastFrameTime = undefined
-        this.setStatus({ phase: 'on', error: null, warning: opened.warning ?? null })
+        this.silentMs = 0
+        this.processingWarning = opened.warning ?? null
+        this.setStatus({ phase: 'on', error: null, warning: this.processingWarning })
         this.frame = this.clock.request(this.tick)
       },
       (error: unknown) => {
@@ -256,6 +267,7 @@ export class SoundService {
     const levelDb = previousTime === undefined ? rawDb : smoothLevel(this.reading.levelDb, rawDb, dtMs)
     const { ambientDb } = this.reading
     this.reading = { rawDb, levelDb, ambientDb, aboveAmbientDb: levelDb - ambientDb }
+    this.watchSignal(rawDb, dtMs)
 
     const recording = this.recording
     if (recording) {
@@ -271,6 +283,14 @@ export class SoundService {
     if (this.opened === opened) this.frame = this.clock.request(this.tick)
   }
 
+  /** [SPEC-6.6] Warns when the source sends exact silence, clears the warning when sound comes back. */
+  private watchSignal(rawDb: number, dtMs: number): void {
+    this.silentMs = rawDb <= DBFS_FLOOR ? this.silentMs + dtMs : 0
+    const warnings = [this.processingWarning, this.silentMs >= NO_SIGNAL_MS ? NO_SIGNAL_TEXT : null].filter((w) => w !== null)
+    const warning = warnings.length > 0 ? warnings.join('\n') : null
+    if (warning !== this.current.warning) this.setStatus({ warning })
+  }
+
   /** Closes the source and stops the frame loop [SPEC-6.7]. */
   private close(): void {
     if (this.frame !== undefined) this.clock.cancel(this.frame)
@@ -278,6 +298,7 @@ export class SoundService {
     this.opened?.close()
     this.opened = undefined
     this.reading = { ...this.reading, rawDb: DBFS_FLOOR, levelDb: DBFS_FLOOR, aboveAmbientDb: DBFS_FLOOR - this.reading.ambientDb }
+    this.processingWarning = null
     if (this.current.phase !== 'opening') this.setStatus({ phase: 'off', warning: null })
   }
 
