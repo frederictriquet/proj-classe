@@ -18,7 +18,7 @@ Entre l'installation et le dernier essai, aucune nouvelle version n'est publiée
 
 1. Ouvrez `chrome://management` dans Chrome. Notez si la page indique que le navigateur est géré par une organisation (cas d'un Mac fourni par l'établissement).
 2. Ouvrez https://frederictriquet.github.io/proj-classe/ dans Chrome.
-3. Cliquez sur le bouton « Installer » au centre de la page, puis confirmez dans la fenêtre de Chrome.
+3. Cliquez sur le bouton « Installer » en haut à droite de la page, puis confirmez dans la fenêtre de Chrome.
 4. Une fenêtre « Proj-Classe » s'ouvre et son icône apparaît dans le Dock. Clic droit sur l'icône du Dock, Options, Garder dans le Dock.
 
 **V8** : réussi si l'installation aboutit. Si Chrome affiche un message de blocage par l'administrateur, notez-le mot pour mot. Si le navigateur n'est pas géré, notez « sans objet, Mac non géré ».

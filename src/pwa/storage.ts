@@ -1,4 +1,4 @@
-import { errorMessage } from './register'
+import { errorMessage } from '../errors'
 
 export type PersistState =
   | { kind: 'pending' }

@@ -1,4 +1,4 @@
-import { errorMessage } from '../pwa/register'
+import { errorMessage } from '../errors'
 
 export type Status = 'ok' | 'warn' | 'error' | 'neutral'
 

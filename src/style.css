@@ -52,37 +52,224 @@ button:disabled {
   font-weight: 600;
 }
 
-/* Home */
-.home {
+/* [SPEC-4.5] [SPEC-8.1] [SPEC-8.2] Menu: large rounded tiles, flat colours, strong contrast. */
+.menu {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1.5rem;
+  padding: 2rem clamp(1rem, 4vw, 3rem) 4rem;
   background: var(--green-dark);
   color: #fff;
+}
+
+.menu-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.menu-header img {
+  width: 72px;
+  height: 72px;
+}
+
+.menu-header h1 {
+  margin: 0;
+  font-size: 2.6rem;
+}
+
+.menu-header .install {
+  margin-left: auto;
+  font-size: 1.3rem;
+  padding: 0.6rem 1.6rem;
+}
+
+.install-message {
+  flex-basis: 100%;
+  margin: 0;
+  text-align: right;
+}
+
+.install-message:empty {
+  display: none;
+}
+
+.menu-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  max-width: 1400px;
+  margin: 0 auto 2rem;
+  padding: 1rem 1.25rem;
+  border-radius: 1.2rem;
+  background: var(--error);
+  color: #fff;
+  font-size: 1.2rem;
+}
+
+.menu-notice[hidden] {
+  display: none;
+}
+
+.menu-notice[data-kind='warning'] {
+  background: var(--warn);
+}
+
+.menu-notice p {
+  flex: 1;
+  margin: 0;
+  white-space: pre-line;
+}
+
+.menu-notice button {
+  flex: none;
+  font-size: 1.2rem;
+  background: #fff;
+  border-color: #fff;
+  color: var(--ink);
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+.menu-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 6px solid var(--ink);
+  border-radius: 2rem;
+  background: var(--cream);
+  color: var(--ink);
+  font-size: 1.8rem;
+  font-weight: 700;
+  text-align: center;
+  transition: transform 0.2s ease;
+}
+
+.tile img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 1.4rem;
+}
+
+.tile:hover {
+  transform: translateY(-4px);
+}
+
+.tile:focus-visible,
+.tile-settings:focus-visible {
+  outline: 8px solid #f4c430;
+  outline-offset: 4px;
+}
+
+.tile-settings {
+  align-self: center;
+  font-size: 1.1rem;
+  border-radius: 999px;
+  background: var(--cream);
+  border-color: var(--cream);
+  color: var(--ink);
+}
+
+.menu-empty {
+  margin: 4rem 0 0;
+  font-size: 1.5rem;
   text-align: center;
 }
 
-.home img {
-  width: 160px;
-  height: 160px;
+.menu-empty[hidden] {
+  display: none;
 }
 
-.home h1 {
-  margin: 0;
-  font-size: 3rem;
+/* [SPEC-7.2] Settings panel */
+.settings-panel {
+  width: min(92vw, 560px);
+  padding: 1.5rem 1.75rem;
+  border: 6px solid var(--ink);
+  border-radius: 1.6rem;
+  background: var(--cream);
+  color: var(--ink);
 }
 
-.home p {
-  margin: 0;
-  font-size: 1.25rem;
+.settings-panel::backdrop {
+  background: rgb(0 0 0 / 55%);
 }
 
-.home .install {
-  font-size: 1.5rem;
-  padding: 0.75rem 2rem;
+.settings-panel h2 {
+  margin: 0 0 1.25rem;
+  font-size: 1.6rem;
+}
+
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.setting {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.4rem 1rem;
+  align-items: center;
+  font-size: 1.2rem;
+}
+
+.setting input[type='range'] {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  width: 100%;
+  accent-color: var(--green-dark);
+}
+
+.setting-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.setting-toggle {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.setting-toggle input {
+  width: 1.6rem;
+  height: 1.6rem;
+  accent-color: var(--green-dark);
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.75rem;
+}
+
+/* [SPEC-4.6] Stage of the running app: covers the window, then goes full screen. */
+.app-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--green-dark);
+  outline: none;
+}
+
+.app-stage canvas {
+  display: block;
 }
 
 .discreet-link {

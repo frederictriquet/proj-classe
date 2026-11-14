@@ -1,6 +1,6 @@
 // [SPEC-5.3] [SPEC-5.4] [SPEC-10 V4] [SPEC-10 V9] Test window opened on the other screen:
 // full-screen animation, frame rate reported back to the diagnostic page.
-import { errorMessage } from '../pwa/register'
+import { errorMessage } from '../errors'
 import { DIAGNOSTIC_CHANNEL, type SceneTestMessage } from './channel'
 import type { FpsStats } from './fps-meter'
 import { formatFps, startTestAnimation, type TestAnimation } from './test-animation'

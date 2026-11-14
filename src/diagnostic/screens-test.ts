@@ -1,6 +1,6 @@
 // [SPEC-5.3] [SPEC-5.4] [SPEC-10 V4] Screen detection and a test window opened full screen
 // on the other screen through Chrome's Window Management API.
-import { errorMessage } from '../pwa/register'
+import { errorMessage } from '../errors'
 import { DIAGNOSTIC_CHANNEL, type SceneTestMessage } from './channel'
 import type { Row } from './rows'
 

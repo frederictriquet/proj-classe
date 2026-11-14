@@ -1,4 +1,5 @@
 import { registerSW } from 'virtual:pwa-register'
+import { errorMessage } from '../errors'
 
 export type SwRegistrationState =
   | { kind: 'unsupported' }
@@ -31,9 +32,4 @@ export function registerServiceWorker(): void {
     onRegisteredSW: (scriptUrl, registration) => setState({ kind: 'registered', scriptUrl, registration }),
     onRegisterError: (error: unknown) => setState({ kind: 'error', message: errorMessage(error) }),
   })
-}
-
-export function errorMessage(error: unknown): string {
-  if (error instanceof Error) return `${error.name} : ${error.message}`
-  return String(error)
 }
