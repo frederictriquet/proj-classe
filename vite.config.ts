@@ -25,7 +25,7 @@ export default defineConfig({
   plugins: [
     VitePWA({
       // [SPEC-3.3] New versions install without user action. The reload waits for the
-      // menu (UpdateGate in src/pwa/update.ts).
+      // menu (UpdateGate in src/boot/update.ts).
       registerType: 'autoUpdate',
       injectRegister: false,
       strategies: 'injectManifest',

@@ -1,3 +1,6 @@
+// The app, loaded by the bootstrap (src/boot/boot.ts) with a dynamic import() [SPEC-3.9.2]. The
+// service worker and the update gate belong to the bootstrap; the app tells the gate when the menu
+// shows and whether a sub-application runs [SPEC-3.3].
 import './style.css'
 import { APP_REGISTRY } from './apps/registry'
 import { MicrophoneSource } from './audio/microphone-source'
@@ -10,10 +13,8 @@ import { AppHost, type HostDisplay } from './host/host'
 import type { HostCommand, HostState } from './host/protocol'
 import { sceneChannelName, type FromScene } from './host/scene-link'
 import { SwitchableLink } from './host/switchable-link'
-import { listenForInstallPrompt } from './pwa/install'
-import { registerServiceWorker } from './pwa/register'
+import { announceUpdateInstalled, versionChanged, type UpdateGate } from './boot/update'
 import { requestPersistentStorage } from './pwa/storage'
-import { announceUpdateInstalled, UpdateGate, versionChanged } from './pwa/update'
 import { VERSION_LABEL } from './version'
 import { browserProjectionEnv, Projection, type ProjectionState } from './screens/projection'
 import { parseSceneHash, type SceneParams } from './screens/screen-api'
@@ -59,8 +60,9 @@ function runScene(params: SceneParams): void {
 }
 
 /** [SPEC-5.2] [SPEC-5.3] Control window (régie): menu, settings, live level. With one screen it
- *  also shows the app full screen; with two, the scene window does. */
-function runControl(): void {
+ *  also shows the app full screen; with two, the scene window does. Resolves once the first view
+ *  is shown [SPEC-3.9.3]. */
+function runControl(updates: UpdateGate): Promise<void> {
   // Any uncaught error is shown on screen, not only in the console.
   const banner = document.getElementById('error-banner')
   const showError = (message: string) => {
@@ -114,10 +116,7 @@ function runControl(): void {
     showError(`version précédente illisible : ${errorMessage(error)}`)
   }
   // [SPEC-3.3] A new version reloads the page only on the menu, with no app running.
-  const updateGate = new UpdateGate(() => location.reload())
-  link.subscribe((state) => updateGate.setAppActive(state.phase !== 'menu'))
-  registerServiceWorker(() => updateGate.newVersion()) // [SPEC-3.1] [SPEC-3.3]
-  listenForInstallPrompt() // [SPEC-3.5]
+  link.subscribe((state) => updates.setAppActive(state.phase !== 'menu'))
   void requestPersistentStorage() // [SPEC-3.2]
 
   let dispose: (() => void) | undefined
@@ -128,7 +127,7 @@ function runControl(): void {
     const hash = location.hash
     const onMenu = hash !== '#diagnostic' && hash !== '#scene-test'
     // Decided before loading the menu: after an update, the old menu file is gone [SPEC-3.3].
-    if (updateGate.showingMenu(onMenu)) return
+    if (updates.showingMenu(onMenu)) return
     dispose?.()
     dispose = undefined
     let next: () => void
@@ -142,11 +141,22 @@ function runControl(): void {
 
   const onRouteError = (error: unknown) => showError(errorMessage(error))
   window.addEventListener('hashchange', () => void route().catch(onRouteError))
-  route().catch(onRouteError)
+  // [SPEC-3.9.3] The first view ends the start: if it fails, the bootstrap shows its fallback
+  // screen. Later views report their failure in the banner.
+  return route()
 }
 
-// [SPEC-5.1] One code, two roles: the address of the scene window carries `#scene?canal=…`.
-// The scene does not register the service worker: an update never reloads it during an app.
-const sceneParams = parseSceneHash(location.hash)
-if (sceneParams) runScene(sceneParams)
-else runControl()
+/** What the bootstrap hands to the app [SPEC-3.9.2]. */
+export interface BootContext {
+  /** [SPEC-3.3] Reloads the page on a new version once the menu shows with no app running. */
+  updates: UpdateGate
+}
+
+/** Starts the app. Resolves once the first view is shown; until then, any failure is a failed
+ *  start and the bootstrap shows its fallback screen [SPEC-3.9.3]. */
+export async function startApp(boot: BootContext): Promise<void> {
+  // [SPEC-5.1] One code, two roles: the address of the scene window carries `#scene?canal=…`.
+  const sceneParams = parseSceneHash(location.hash)
+  if (sceneParams) runScene(sceneParams)
+  else await runControl(boot.updates)
+}

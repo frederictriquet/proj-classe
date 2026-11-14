@@ -2,7 +2,7 @@
 // the service worker cache, with the same check as the diagnostic page (checkOfflineCache).
 import { errorMessage } from '../errors'
 import { checkOfflineCache } from './precache-check'
-import { getSwRegistrationState, onSwRegistrationChange } from './register'
+import { getSwRegistrationState, onSwRegistrationChange } from '../boot/register'
 
 export type OfflineStatus =
   /** Some files of the build are not in the cache yet. */

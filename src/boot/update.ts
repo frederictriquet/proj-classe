@@ -1,5 +1,6 @@
-// [SPEC-3.3] [SPEC-3.4] [SPEC-3.6] New versions of the app: looked for at each launch with
-// network, applied (page reload) on the menu only, reported on the menu. The browser glue is in
+// [SPEC-3.3] [SPEC-3.4] [SPEC-3.6] [SPEC-3.9.2] New versions of the app: looked for at each launch
+// with network, applied (page reload) on the menu only, reported on the menu. Part of the
+// bootstrap, so it must not import the rest of the app at run time. The browser glue is in
 // register.ts; this module holds the logic and the state the menu shows.
 import { errorMessage } from '../errors'
 import type { KeyValueStorage } from '../settings/settings'
@@ -8,12 +9,14 @@ import type { KeyValueStorage } from '../settings/settings'
  * [SPEC-3.3] Holds a downloaded version until the menu is shown with no app running, then
  * applies it once. The service worker has already taken over (autoUpdate); what waits is the
  * reload of the page, which would otherwise interrupt an app.
+ * [SPEC-3.9.3] Once the app has failed to start, a version applies as soon as it is downloaded.
  */
 export class UpdateGate {
   private pending = false
   private applied = false
   private onMenu = false
   private appActive = false
+  private startFailed = false
 
   /** @param apply reloads the page on the new version. */
   constructor(private readonly apply: () => void) {}
@@ -37,9 +40,17 @@ export class UpdateGate {
     return this.tryApply()
   }
 
+  /** [SPEC-3.9.3] The app did not start: the fallback screen shows, there is no menu to wait
+   *  for. Returns true when a downloaded version is applied at once. */
+  startupFailed(): boolean {
+    this.startFailed = true
+    return this.tryApply()
+  }
+
   private tryApply(): boolean {
     if (this.applied) return true
-    if (!this.pending || !this.onMenu || this.appActive) return false
+    if (!this.pending) return false
+    if (!this.startFailed && (!this.onMenu || this.appActive)) return false
     this.applied = true
     this.apply()
     return true
@@ -120,7 +131,7 @@ export function updateFailureText(cause: string, versionLabel: string): string {
   return `La mise à jour a échoué : ${cause}\nVersion restée en service : ${versionLabel}`
 }
 
-// State shown by the menu, set by register.ts and main.ts.
+// State shown by the menu, set by register.ts and src/main.ts.
 
 let failureCause: string | null = null
 let installedUntil = 0

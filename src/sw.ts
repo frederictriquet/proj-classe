@@ -11,7 +11,7 @@ precacheAndRoute(manifest)
 cleanupOutdatedCaches()
 
 // [SPEC-3.3] autoUpdate: a new worker takes over as soon as it is installed. The page reloads
-// on it only when the menu shows with no app running (UpdateGate in src/pwa/update.ts).
+// on it only when the menu shows with no app running (UpdateGate in src/boot/update.ts).
 void self.skipWaiting()
 clientsClaim()
 

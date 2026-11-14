@@ -1,6 +1,6 @@
 import { registerSW } from 'virtual:pwa-register'
 import { errorMessage } from '../errors'
-import { checkOfflineCache } from './precache-check'
+import { checkOfflineCache } from '../pwa/precache-check'
 import { lookForUpdate, pageIsOutdated, reportUpdateFailure } from './update'
 
 export type SwRegistrationState =
@@ -27,7 +27,9 @@ function setState(next: SwRegistrationState): void {
 }
 
 /**
- * [SPEC-3.1] [SPEC-3.3] Registers the service worker and looks for a new version at each launch.
+ * [SPEC-3.1] [SPEC-3.3] [SPEC-3.9.2] Registers the service worker and looks for a new version at
+ * each launch. Called by the bootstrap before the app is loaded, so that an app that fails to
+ * start still receives the next version.
  * A new version installs and takes control on its own (autoUpdate, see sw.ts); the page is not
  * reloaded here: `onNewVersion` hands that decision to the UpdateGate, which waits for the menu.
  */

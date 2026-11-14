@@ -63,6 +63,37 @@ describe('UpdateGate [SPEC-3.3]', () => {
   })
 })
 
+describe('UpdateGate after a failed start [SPEC-3.9.3]', () => {
+  it('applies a version downloaded before the failure as soon as the start fails', () => {
+    const apply = vi.fn()
+    const gate = new UpdateGate(apply)
+    expect(gate.newVersion()).toBe(false)
+    expect(gate.startupFailed()).toBe(true)
+    expect(apply).toHaveBeenCalledTimes(1)
+  })
+
+  it('applies a version downloaded after the failure at once, without a menu', () => {
+    const apply = vi.fn()
+    const gate = new UpdateGate(apply)
+    expect(gate.startupFailed()).toBe(false)
+    expect(apply).not.toHaveBeenCalled()
+    expect(gate.newVersion()).toBe(true)
+    expect(apply).toHaveBeenCalledTimes(1)
+  })
+
+  it('ignores the menu and app state once the start has failed, and applies only once', () => {
+    const apply = vi.fn()
+    const gate = new UpdateGate(apply)
+    gate.showingMenu(false)
+    gate.setAppActive(true)
+    gate.startupFailed()
+    gate.newVersion()
+    gate.newVersion()
+    gate.startupFailed()
+    expect(apply).toHaveBeenCalledTimes(1)
+  })
+})
+
 describe('pageIsOutdated [SPEC-3.3]', () => {
   const urls = ['https://x/proj-classe/index.html', 'https://x/proj-classe/assets/index-NEW.js']
 

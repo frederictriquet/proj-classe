@@ -1,5 +1,6 @@
 // [SPEC-5.3] [SPEC-5.4] Chrome's Window Management API (types missing from the DOM library) and the
 // pure helpers that place the scene window: which screen, which window features, which address.
+import { SCENE_HASH } from '../boot/scene-hash'
 
 export interface ScreenDetailed extends Screen {
   readonly availLeft: number
@@ -43,8 +44,6 @@ export interface SceneParams {
   /** Projector screen chosen by the control window; absent in the fallback [SPEC-5.4]. */
   target?: ScreenPosition
 }
-
-const SCENE_HASH = '#scene?'
 
 /** [SPEC-5.3] The screen the scene goes to: another screen than the control window's, an external
  *  one first. Undefined with a single screen. */
