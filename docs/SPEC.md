@@ -31,6 +31,13 @@ Décisions arrêtées avec l'utilisateur le 2026-11-14. Chaque tâche relit les 
 - 3.7 Le menu affiche un témoin d'état hors ligne. « Prête hors ligne » apparaît seulement quand tous les fichiers du build sont dans le cache du service worker (même contrôle que la page de diagnostic). Tant que ce n'est pas le cas, le témoin indique « Téléchargement en cours ».
 - 3.8 Consigne pour l'enseignante, affichée au clic sur le témoin : « Si les données de navigation de Chrome ont été effacées, ouvrez l'application une fois avec une connexion internet avant la classe. » Raison : effacer les données de navigation de Chrome supprime l'application du disque, et le stockage persistant (SPEC-3.2) n'en protège pas. Un lancement avec réseau la retélécharge.
 
+SPEC-3.9 Version défectueuse et retour arrière
+- 3.9.1 Garde avant publication : après le build, le workflow de déploiement lance un test de démarrage dans Chromium sans interface, sur le build servi localement. Le test vérifie que le menu s'affiche, qu'aucune erreur non rattrapée n'est levée, que le service worker s'enregistre, que le cache est complet et que la page se recharge réseau coupé. Un échec empêche la publication.
+- 3.9.2 Amorce indépendante : l'enregistrement du service worker, la recherche et l'application d'une nouvelle version sont dans un module d'amorce chargé avant le reste de l'application et sans dépendance vers lui. Une erreur au démarrage de l'application n'empêche ni la recherche ni l'application d'une nouvelle version.
+- 3.9.3 Écran de secours : si l'application ne démarre pas (erreur non rattrapée avant l'affichage du menu), l'amorce affiche un écran en français avec le numéro de version et la consigne « L'application a rencontré un problème. Connectez le Mac à internet puis relancez-la. ». Dans cet état, une nouvelle version est appliquée dès qu'elle est téléchargée, sans attendre le menu (exception à SPEC-3.3).
+- 3.9.4 Retour arrière : annuler le commit fautif sur `master` (`git revert`) et pousser. La version rétablie est publiée par le workflow habituel et prise par l'application installée au lancement suivant avec réseau. La procédure est décrite dans `README.md`.
+- 3.9.5 Limite assumée : sans réseau, une version défectueuse déjà installée reste en place jusqu'au prochain lancement avec réseau. Aucune copie de la version précédente n'est conservée sur le Mac.
+
 ## SPEC-4 Contrat de sous-application et menu
 
 - 4.1 Une sous-application est un dossier `src/apps/<id>/` qui exporte une fiche et une fabrique. Fiche : `id`, `title`, vignette, `needs` (par exemple `['microphone']`), `settings` (liste déclarative de réglages : identifiant, libellé, type curseur ou interrupteur, bornes, valeur par défaut).
