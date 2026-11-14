@@ -1,6 +1,7 @@
 import { registerSW } from 'virtual:pwa-register'
 import { errorMessage } from '../errors'
-import { lookForUpdate, reportUpdateFailure } from './update'
+import { checkOfflineCache } from './precache-check'
+import { lookForUpdate, pageIsOutdated, reportUpdateFailure } from './update'
 
 export type SwRegistrationState =
   | { kind: 'unsupported' }
@@ -35,10 +36,11 @@ export function registerServiceWorker(onNewVersion: () => void): void {
 
   // A worker that takes over a page that already had one is a new version. The navigation may
   // have started the update before workbox-window listens, so its `activated` event alone is not
-  // enough. The first install also changes controller, but the page had none before.
+  // enough. The first worker of a page is a new version only if the page is older than it.
   let controlled = navigator.serviceWorker.controller !== null
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (controlled) onNewVersion()
+    else checkFirstWorker(onNewVersion)
     controlled = true
   })
 
@@ -52,6 +54,19 @@ export function registerServiceWorker(onNewVersion: () => void): void {
     },
     onRegisterError: (error: unknown) => setState({ kind: 'error', message: errorMessage(error) }),
   })
+}
+
+/** [SPEC-3.3] A page loaded without a worker may come from Chrome's HTTP cache, older than the
+ *  worker just installed from the network: it then reloads on the menu like any new version. */
+function checkFirstWorker(onNewVersion: () => void): void {
+  const entryScript = document.querySelector<HTMLScriptElement>('script[type="module"][src]')?.src ?? null
+  checkOfflineCache().then(
+    (report) => {
+      if (pageIsOutdated(entryScript, report.urls)) onNewVersion()
+    },
+    (error: unknown) =>
+      reportUpdateFailure(`impossible de comparer la page à la version téléchargée : ${errorMessage(error)}`),
+  )
 }
 
 /** [SPEC-3.3] [SPEC-3.6] Asks the server for a new version once per launch and reports any

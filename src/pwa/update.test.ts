@@ -3,6 +3,7 @@ import type { KeyValueStorage } from '../settings/settings'
 import {
   INSTALL_FAILED,
   lookForUpdate,
+  pageIsOutdated,
   UpdateGate,
   updateFailureText,
   VERSION_KEY,
@@ -59,6 +60,22 @@ describe('UpdateGate [SPEC-3.3]', () => {
     expect(gate.showingMenu(true)).toBe(true)
     expect(gate.setAppActive(true)).toBe(true)
     expect(apply).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('pageIsOutdated [SPEC-3.3]', () => {
+  const urls = ['https://x/proj-classe/index.html', 'https://x/proj-classe/assets/index-NEW.js']
+
+  it('is false when the worker holds the script the page loaded', () => {
+    expect(pageIsOutdated('https://x/proj-classe/assets/index-NEW.js', urls)).toBe(false)
+  })
+
+  it('is true when the page came from an older version (HTTP cache)', () => {
+    expect(pageIsOutdated('https://x/proj-classe/assets/index-OLD.js', urls)).toBe(true)
+  })
+
+  it('is false when the entry script is unknown', () => {
+    expect(pageIsOutdated(null, urls)).toBe(false)
   })
 })
 

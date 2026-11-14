@@ -46,6 +46,15 @@ export class UpdateGate {
   }
 }
 
+/**
+ * [SPEC-3.3] True when the page runs another version than the one its first worker holds: the
+ * entry script the page loaded is not among the worker's files. It happens when Chrome takes the
+ * page from its HTTP cache (GitHub Pages sends max-age=600) while it fetches a newer worker.
+ */
+export function pageIsOutdated(entryScriptUrl: string | null, workerUrls: readonly string[]): boolean {
+  return entryScriptUrl !== null && !workerUrls.includes(entryScriptUrl)
+}
+
 /** Storage key of the version that ran at the previous launch. */
 export const VERSION_KEY = 'proj-classe.version'
 

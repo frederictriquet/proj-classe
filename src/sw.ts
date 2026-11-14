@@ -43,5 +43,5 @@ async function checkPrecache(): Promise<PrecacheReport> {
     cachedKeys,
   )
   const missingUrls = expected.filter((e) => missing.includes(e.key)).map((e) => e.url)
-  return { expected: expected.length, missing: missingUrls }
+  return { expected: expected.length, missing: missingUrls, urls }
 }

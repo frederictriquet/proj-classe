@@ -6,6 +6,8 @@ export const PRECACHE_CHECK_REQUEST = 'PRECACHE_CHECK'
 export interface PrecacheReport {
   expected: number
   missing: string[]
+  /** Every URL of the worker's precache manifest, cached or not. */
+  urls: string[]
 }
 
 /** Cache keys expected by the precache manifest that are absent from the cache. */
