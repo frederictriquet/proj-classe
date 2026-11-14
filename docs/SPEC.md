@@ -28,6 +28,8 @@ Décisions arrêtées avec l'utilisateur le 2026-11-14. Chaque tâche relit les 
 - 3.4 Le menu affiche le numéro de version (version de `package.json` et hash court du commit) et, après une mise à jour, le message « Mise à jour installée » pendant quelques secondes. Sans réseau, aucun message : c'est le fonctionnement normal.
 - 3.5 Ouverte dans un onglet Chrome (non installée), l'application affiche un bouton « Installer » (événement `beforeinstallprompt`).
 - 3.6 Un échec de mise à jour autre que l'absence de réseau s'affiche sur le menu, avec la version restée en service.
+- 3.7 Le menu affiche un témoin d'état hors ligne. « Prête hors ligne » apparaît seulement quand tous les fichiers du build sont dans le cache du service worker (même contrôle que la page de diagnostic). Tant que ce n'est pas le cas, le témoin indique « Téléchargement en cours ».
+- 3.8 Consigne pour l'enseignante, affichée au clic sur le témoin : « Si les données de navigation de Chrome ont été effacées, ouvrez l'application une fois avec une connexion internet avant la classe. » Raison : effacer les données de navigation de Chrome supprime l'application du disque, et le stockage persistant (SPEC-3.2) n'en protège pas. Un lancement avec réseau la retélécharge.
 
 ## SPEC-4 Contrat de sous-application et menu
 
@@ -104,6 +106,7 @@ Décisions arrêtées avec l'utilisateur le 2026-11-14. Chaque tâche relit les 
 | V7 Sous le chemin `/nom-du-depot/` de GitHub Pages, le cache hors ligne est complet. | | |
 | V8 Si le Mac est géré par un établissement, l'installation depuis Chrome est autorisée. | | |
 | V9 L'animation d'essai du diagnostic tient au moins 50 images par seconde en plein écran sur le projecteur. | | |
+| V10 Après effacement des données de navigation de Chrome (cookies et données de sites), l'application installée se rétablit seule au lancement suivant avec réseau, puis redémarre Wi-Fi coupé. | | |
 
 ## SPEC-11 Hors périmètre pour l'instant
 
