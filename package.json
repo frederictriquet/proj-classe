@@ -1,0 +1,27 @@
+{
+  "name": "proj-classe",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build && node scripts/check-precache.mjs",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "generate-icons": "pwa-assets-generator"
+  },
+  "dependencies": {
+    "pixi.js": "^8.23.0",
+    "workbox-core": "^7.4.1",
+    "workbox-precaching": "^7.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@vite-pwa/assets-generator": "^2.0.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.1.0",
+    "workbox-window": "^7.4.1"
+  }
+}

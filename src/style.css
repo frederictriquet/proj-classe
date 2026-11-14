@@ -1,0 +1,222 @@
+/* [SPEC-2.3] System fonts only: nothing is loaded from another domain. */
+:root {
+  --green-dark: #2e6b3f;
+  --green: #7cc36a;
+  --cream: #fbf6e9;
+  --ink: #1b1b1b;
+  --ok: #1f7a34;
+  --warn: #a45c00;
+  --error: #b3261e;
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  color: var(--ink);
+  background: var(--cream);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+button {
+  font: inherit;
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.6rem;
+  border: 2px solid var(--green-dark);
+  background: #fff;
+  color: var(--green-dark);
+  cursor: pointer;
+}
+
+button.primary {
+  background: var(--green-dark);
+  color: #fff;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.error-banner {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 0.75rem 1rem;
+  background: var(--error);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Home */
+.home {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  background: var(--green-dark);
+  color: #fff;
+  text-align: center;
+}
+
+.home img {
+  width: 160px;
+  height: 160px;
+}
+
+.home h1 {
+  margin: 0;
+  font-size: 3rem;
+}
+
+.home p {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.home .install {
+  font-size: 1.5rem;
+  padding: 0.75rem 2rem;
+}
+
+.discreet-link {
+  position: fixed;
+  right: 1rem;
+  bottom: 0.75rem;
+  color: rgb(255 255 255 / 55%);
+  font-size: 0.9rem;
+}
+
+/* Diagnostic */
+.diagnostic {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 4rem;
+}
+
+.diagnostic header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.diagnostic h1 {
+  margin: 0;
+}
+
+.diagnostic h2 {
+  margin: 2rem 0 0.5rem;
+  font-size: 1.2rem;
+}
+
+.diag-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.diag-table th,
+.diag-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #e4dccb;
+}
+
+.diag-table th {
+  width: 28%;
+  font-weight: 600;
+}
+
+.diag-table td.value {
+  white-space: pre-line;
+}
+
+.diag-table td.actions {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.diag-table td.actions button + button {
+  margin-left: 0.5rem;
+}
+
+.status-ok {
+  color: var(--ok);
+}
+
+.status-warn {
+  color: var(--warn);
+}
+
+.status-error {
+  color: var(--error);
+  font-weight: 600;
+}
+
+.anim-stage {
+  position: relative;
+  margin-top: 0.75rem;
+  height: 320px;
+  background: var(--green-dark);
+  border-radius: 0.6rem;
+  overflow: hidden;
+}
+
+.anim-stage[hidden] {
+  display: none;
+}
+
+.anim-stage:fullscreen {
+  border-radius: 0;
+}
+
+.fps-overlay {
+  position: absolute;
+  left: 1rem;
+  top: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.6rem;
+  background: rgb(0 0 0 / 60%);
+  color: #fff;
+  font-size: 1.4rem;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+/* Scene test window */
+.scene-test {
+  position: fixed;
+  inset: 0;
+  background: var(--green-dark);
+}
+
+.scene-test .anim-stage {
+  position: absolute;
+  inset: 0;
+  height: auto;
+  margin: 0;
+  border-radius: 0;
+}
+
+.scene-test .fps-overlay {
+  font-size: 2.5rem;
+}
+
+.fullscreen-prompt {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: min(80vw, 900px);
+  height: 40vh;
+  font-size: 3rem;
+  border-width: 6px;
+}
