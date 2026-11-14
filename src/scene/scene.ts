@@ -58,8 +58,8 @@ export function startScene({ root, host, channel, params }: SceneOptions): void 
   document.title = 'Proj-Classe : scène'
   const post = (message: FromScene) => channel.postMessage(message)
 
-  // [SPEC-5.4] Full screen needs a click in this window when Chrome did not open it full screen.
-  // The whole window is the button, so a click anywhere on the projector works.
+  // [SPEC-5.4] [SPEC-10 V4] Full screen needs a click in this window when Chrome did not open it
+  // full screen. The whole window is the button, so a click anywhere on the projector works.
   const prompt = document.createElement('button')
   prompt.type = 'button'
   prompt.className = 'scene-fullscreen'

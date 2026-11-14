@@ -54,7 +54,9 @@ export function otherScreen(details: ScreenDetails): ScreenDetailed | undefined 
 }
 
 /** [SPEC-5.3] [SPEC-5.4] `window.open` features: at the projector's coordinates, full screen when
- *  Chrome honours it; otherwise a plain window the adult drags onto the projector. */
+ *  Chrome honours it; otherwise a plain window the adult drags onto the projector.
+ *  [SPEC-10 V4] Whether the installed app honours `fullscreen` is still to be checked on the
+ *  teacher's Mac; the scene's click prompt covers the case where it does not. */
 export function sceneFeatures(target: ScreenDetailed | undefined): string {
   if (!target) return `popup,width=${FALLBACK_WIDTH},height=${FALLBACK_HEIGHT}`
   return `popup,fullscreen,left=${target.availLeft},top=${target.availTop},width=${target.availWidth},height=${target.availHeight}`
