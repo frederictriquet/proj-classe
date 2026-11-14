@@ -1,5 +1,5 @@
-// [SPEC-4.2] Development-only demo: a round shape with big eyes circling the screen.
-// It checks the contract: live settings, full release at stop(), runtime error capture.
+// [SPEC-4.2] [SPEC-6.4] Development-only demo: a round shape with big eyes circling the screen.
+// It checks the contract: live settings, sound level, full release at stop(), runtime error capture.
 import { Application, Container, Graphics } from 'pixi.js'
 import type { AppContext, RunningApp } from '../types'
 
@@ -7,6 +7,18 @@ import type { AppContext, RunningApp } from '../types'
 const SECONDS_PER_TURN = 8
 /** Key that makes the next frame throw, to check that the host returns to the menu [SPEC-4.8]. */
 export const CRASH_KEY = 'x'
+
+/** dB above the ambient noise at which the shape reaches its largest size. */
+const LOUD_DB = 30
+/** Size factor at `LOUD_DB` and above. */
+const LOUD_GROWTH = 2.5
+
+/** [SPEC-6.4] Size factor of the shape: 1 at the ambient noise or below, growing with the
+ *  difference to the ambient noise up to `LOUD_GROWTH`. */
+export function growthFor(aboveAmbientDb: number): number {
+  const ratio = Math.min(1, Math.max(0, aboveAmbientDb / LOUD_DB))
+  return 1 + ratio * (LOUD_GROWTH - 1)
+}
 
 /** Angle after `dt` seconds at the given speed factor. */
 export function advanceAngle(angle: number, dt: number, speed: number): number {
@@ -61,7 +73,8 @@ export async function start(context: AppContext): Promise<RunningApp> {
     const { width, height } = app.screen
     const radius = Math.min(width, height) * 0.3
     creature.position.set(width / 2 + Math.cos(angle) * radius, height / 2 + Math.sin(angle) * radius)
-    creature.scale.set((context.settings.boolean('big') ? 2 : 1) * (Math.min(width, height) / 1000))
+    const base = (context.settings.boolean('big') ? 2 : 1) * (Math.min(width, height) / 1000)
+    creature.scale.set(base * growthFor(context.sound.aboveAmbientDb))
   })
 
   return {

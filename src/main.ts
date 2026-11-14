@@ -1,9 +1,12 @@
 import './style.css'
 import { APP_REGISTRY } from './apps/registry'
+import { MicrophoneSource } from './audio/microphone-source'
+import { isSimulationRequested, listenSimulationKeys, SimulatedSource } from './audio/simulated-source'
+import { SoundService, type SoundReading } from './audio/sound-service'
+import type { LevelSource } from './audio/source'
 import { errorMessage } from './errors'
 import { FullscreenDisplay } from './host/fullscreen-display'
 import { AppHost } from './host/host'
-import { checkNeeds } from './host/needs'
 import type { HostCommand, HostState } from './host/protocol'
 import { listenForInstallPrompt } from './pwa/install'
 import { registerServiceWorker } from './pwa/register'
@@ -21,7 +24,19 @@ function showError(error: unknown): void {
 // [SPEC-5.2] Single-screen mode: the menu and the running app share this window.
 const settings = new SettingsStore(localStorage, (message) => showError(message))
 const display = new FullscreenDisplay(() => host.dispatch({ type: 'stop' }))
-const host = new AppHost({ registry: APP_REGISTRY, settings, display, checkNeeds })
+
+// [SPEC-6.5] `?micro=simule` replaces the microphone with a level driven by the keyboard
+// (+ and −) and by a slider of the settings panel. Read once, at start-up.
+let source: LevelSource
+if (isSimulationRequested(location.search)) {
+  const simulated = new SimulatedSource()
+  listenSimulationKeys(simulated)
+  source = simulated
+} else {
+  source = new MicrophoneSource()
+}
+const sound = new SoundService({ source, settings, onProblem: showError })
+const host = new AppHost({ registry: APP_REGISTRY, settings, display, sound })
 
 // [SPEC-4.8] While an app runs, an uncaught error is its own: the host stops it and the menu
 // shows the message. Otherwise the error goes to the banner.
@@ -32,10 +47,14 @@ window.addEventListener('error', (event) => onUncaught(event.error ?? event.mess
 window.addEventListener('unhandledrejection', (event) => onUncaught(event.reason))
 
 if (import.meta.env.DEV) {
+  let lastReading: SoundReading | undefined
+  sound.subscribeLevel((reading) => (lastReading = reading))
   // Development hook: sends commands the way the control window will with two screens [SPEC-5.5].
   ;(window as unknown as { __projClasse: unknown }).__projClasse = {
     dispatch: (command: HostCommand) => host.dispatch(command),
     state: (): HostState => host.state,
+    /** Last frame measured by the sound-level service [SPEC-6.4], undefined before the first. */
+    level: (): SoundReading | undefined => lastReading,
   }
 }
 

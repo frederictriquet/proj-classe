@@ -1,9 +1,10 @@
-// [SPEC-4.2] [SPEC-4.6] [SPEC-4.7] [SPEC-4.8] [SPEC-7.2] Runs one sub-application at a time.
+// [SPEC-4.2] [SPEC-4.6] [SPEC-4.7] [SPEC-4.8] [SPEC-6.7] [SPEC-7.2] Runs one sub-application at a time.
 // The host only talks through HostCommand / HostState (protocol.ts), so the menu can live in
 // the same window [SPEC-5.2] or in another one [SPEC-5.5]. The display (full screen, Escape) is
 // injected, which keeps this module free of DOM calls and testable.
 import type { AppEntry, AppRegistry } from '../apps/registry'
-import type { AppNeed, AppSettings, RunningApp, SettingDeclaration, SettingValues } from '../apps/types'
+import type { AppNeed, AppSettings, RunningApp, SettingDeclaration, SettingValues, SoundLevel } from '../apps/types'
+import type { SoundLease, SoundReading, SoundStatus } from '../audio/sound-service'
 import { errorMessage } from '../errors'
 import type { SettingsStore } from '../settings/settings'
 import type { HostCommand, HostLink, HostNotice, HostState } from './protocol'
@@ -23,14 +24,43 @@ export interface HostDisplay {
   close(): void
 }
 
-/** Resolves with a French message saying what to do when a need is not met [SPEC-4.7]. */
-export type NeedsCheck = (needs: readonly AppNeed[]) => Promise<string | undefined>
+/** The sound-level service as the host uses it (`SoundService` in the browser) [SPEC-6]. */
+export interface HostSound {
+  readonly status: SoundStatus
+  readonly level: SoundLevel
+  subscribeStatus(listener: (status: SoundStatus) => void): () => void
+  subscribeLevel(listener: (reading: SoundReading) => void): () => void
+  /** Rejects with a French message when the microphone cannot open [SPEC-6.6]. */
+  acquire(onLost?: (message: string) => void): Promise<SoundLease>
+  /** Never rejects: a failure goes to `status.error`. */
+  calibrate(): Promise<void>
+  simulate(db: number): void
+}
 
 export interface HostOptions {
   registry: AppRegistry
   settings: SettingsStore
   display: HostDisplay
-  checkNeeds: NeedsCheck
+  sound: HostSound
+}
+
+/** [SPEC-6.4] What an app that did not declare the `microphone` need gets: reading it throws,
+ *  so a forgotten declaration shows at once instead of measuring nothing. */
+function undeclaredSound(title: string): SoundLevel {
+  const fail = (): never => {
+    throw new Error(`« ${title} » lit le niveau sonore sans avoir déclaré le besoin « microphone » dans sa fiche.`)
+  }
+  return {
+    get levelDb() {
+      return fail()
+    },
+    get ambientDb() {
+      return fail()
+    },
+    get aboveAmbientDb() {
+      return fail()
+    },
+  }
 }
 
 /** Settings view given to a running app; the host pushes every change into it [SPEC-7.2]. */
@@ -80,6 +110,13 @@ interface Run {
   appId: string
   settings: LiveSettings
   instance?: RunningApp
+  /** Microphone held for an app that declared the need, released at the end of the run [SPEC-6.7]. */
+  soundLease?: SoundLease
+}
+
+/** Microphone held for the settings panel's live level [SPEC-7.5]. */
+interface Monitor {
+  lease?: SoundLease
 }
 
 export class AppHost implements HostLink {
@@ -87,13 +124,17 @@ export class AppHost implements HostLink {
   private readonly listeners = new Set<(state: HostState) => void>()
   private run: Run | undefined
   private lastToken = 0
+  private monitor: Monitor | undefined
 
   constructor(private readonly options: HostOptions) {
     const settings: Record<string, SettingValues> = {}
     for (const { manifest } of options.registry.entries) {
       settings[manifest.id] = options.settings.read(manifest.id, manifest.settings)
     }
-    this.current = { phase: 'menu', appId: null, settings, notice: null }
+    this.current = { phase: 'menu', appId: null, settings, notice: null, sound: options.sound.status }
+    options.sound.subscribeStatus((sound) => {
+      if (sound !== this.current.sound) this.setState({ sound })
+    })
   }
 
   get state(): HostState {
@@ -109,6 +150,10 @@ export class AppHost implements HostLink {
     this.listeners.add(listener)
     listener(this.current)
     return () => this.listeners.delete(listener)
+  }
+
+  subscribeLevel(listener: (reading: SoundReading) => void): () => void {
+    return this.options.sound.subscribeLevel(listener)
   }
 
   dispatch(command: HostCommand): void {
@@ -135,6 +180,15 @@ export class AppHost implements HostLink {
         break
       case 'request-state':
         this.emit()
+        break
+      case 'monitor-sound':
+        this.setMonitor(command.on)
+        break
+      case 'calibrate':
+        void this.options.sound.calibrate() // never rejects: a failure goes to state.sound.error
+        break
+      case 'simulate-level':
+        this.options.sound.simulate(command.db)
         break
     }
   }
@@ -172,7 +226,7 @@ export class AppHost implements HostLink {
   }
 
   private async finishLaunch(run: Run, entry: AppEntry, opened: Promise<OpenedDisplay>): Promise<void> {
-    const needMessage = await this.options.checkNeeds(entry.manifest.needs)
+    const needMessage = await this.acquireNeeds(run, entry.manifest.needs)
     if (this.run !== run) return
     if (needMessage !== undefined) {
       // [SPEC-4.7] The app is not started; the menu says what to do.
@@ -183,7 +237,8 @@ export class AppHost implements HostLink {
     if (this.run !== run) return
     const module = await entry.load()
     if (this.run !== run) return
-    const instance = await module.start({ container, settings: run.settings })
+    const sound = run.soundLease ? this.options.sound.level : undeclaredSound(entry.manifest.title)
+    const instance = await module.start({ container, settings: run.settings, sound })
     if (this.run !== run) {
       // Stopped while it was starting: release it now, nothing may keep running [SPEC-4.2].
       instance.stop()
@@ -194,6 +249,59 @@ export class AppHost implements HostLink {
       phase: 'running',
       notice: warning === undefined ? null : { kind: 'warning', appId: run.appId, message: warning },
     })
+  }
+
+  /**
+   * [SPEC-4.7] Acquires what the app declared. Resolves with a French message saying what to do
+   * when a need is not met. Every need has its own case: a new need without one is a type error.
+   */
+  private async acquireNeeds(run: Run, needs: readonly AppNeed[]): Promise<string | undefined> {
+    for (const need of needs) {
+      switch (need) {
+        case 'microphone': {
+          let lease: SoundLease
+          try {
+            // [SPEC-6.6] Microphone lost during the run: back to the menu with what to do.
+            lease = await this.options.sound.acquire((message) => {
+              if (this.run === run) this.endRun({ kind: 'error', appId: run.appId, message })
+            })
+          } catch (error) {
+            return `L'activité a besoin du micro et ne peut pas démarrer.\n${errorMessage(error)}`
+          }
+          // Stopped while the microphone was opening: give it back at once [SPEC-6.7].
+          if (this.run === run) run.soundLease = lease
+          else lease.release()
+          break
+        }
+        default: {
+          const unknown: never = need
+          throw new Error(`Besoin inconnu : « ${String(unknown)} »`)
+        }
+      }
+    }
+    return undefined
+  }
+
+  /** [SPEC-7.5] Opens the microphone for the settings panel's live level, or gives it back. */
+  private setMonitor(on: boolean): void {
+    if (!on) {
+      this.monitor?.lease?.release()
+      this.monitor = undefined
+      return
+    }
+    if (this.monitor) return
+    const monitor: Monitor = {}
+    this.monitor = monitor
+    this.options.sound.acquire().then(
+      (lease) => {
+        if (this.monitor === monitor) monitor.lease = lease
+        else lease.release() // the panel closed while the microphone was opening
+      },
+      () => {
+        // The service already put the French message in state.sound.error, shown by the panel.
+        if (this.monitor === monitor) this.monitor = undefined
+      },
+    )
   }
 
   private endRun(notice: HostNotice | null): void {
@@ -212,6 +320,8 @@ export class AppHost implements HostLink {
         message: finalNotice ? `${finalNotice.message}\n${stopMessage}` : stopMessage,
       }
     }
+    // [SPEC-6.7] After the app's own stop: the microphone is given back, Chrome's indicator goes off.
+    run.soundLease?.release()
     try {
       this.options.display.close()
     } finally {

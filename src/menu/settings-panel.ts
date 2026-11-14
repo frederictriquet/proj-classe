@@ -1,8 +1,9 @@
-// [SPEC-4.4] [SPEC-7.2] [SPEC-7.3] [SPEC-7.4] Settings panel built from the app's declarations.
+// [SPEC-4.4] [SPEC-7.2] [SPEC-7.3] [SPEC-7.4] [SPEC-7.5] Settings panel built from the app's declarations.
 // It only reads HostState and sends HostCommand, so it can also sit on the control screen while
 // the app runs on the other screen.
 import type { AppManifest, SettingDeclaration, SettingValue } from '../apps/types'
 import type { HostLink } from '../host/protocol'
+import { soundSection } from './sound-section'
 
 const numberFormat = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 })
 
@@ -97,7 +98,9 @@ export function openSettingsPanel(manifest: AppManifest, link: HostLink, onClose
   close.textContent = 'Fermer'
   close.addEventListener('click', () => dialog.close())
   actions.append(reset, close)
-  dialog.append(title, list, actions)
+  // [SPEC-7.5] Live level and « Calibrer » for an app that listens to the classroom.
+  const sound = manifest.needs.includes('microphone') ? soundSection(link) : undefined
+  dialog.append(title, ...(sound ? [sound.element] : []), list, actions)
   document.body.append(dialog)
 
   const unsubscribe = link.subscribe((state) => {
@@ -110,6 +113,7 @@ export function openSettingsPanel(manifest: AppManifest, link: HostLink, onClose
   })
   // The dialog closes with the button or with Escape (native behaviour of a modal dialog).
   dialog.addEventListener('close', () => {
+    sound?.dispose()
     unsubscribe()
     dialog.remove()
     onClose()

@@ -259,6 +259,90 @@ button:disabled {
   margin-top: 1.75rem;
 }
 
+/* [SPEC-7.5] Live sound level and calibration in the settings panel */
+.sound-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 3px solid var(--ink);
+  font-size: 1.1rem;
+}
+
+.sound-section h3 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.sound-section p {
+  margin: 0;
+}
+
+.sound-bar {
+  position: relative;
+  height: 1.6rem;
+  border: 3px solid var(--ink);
+  border-radius: 0.8rem;
+  overflow: hidden;
+  background: #fff;
+}
+
+.sound-bar-fill {
+  height: 100%;
+  width: 0;
+  background: var(--green-dark);
+}
+
+/* Ambient noise: a vertical line on the bar. */
+.sound-bar-ambient {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  margin-left: -2px;
+  background: var(--warn);
+}
+
+.sound-values {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.sound-help {
+  font-size: 1rem;
+}
+
+.sound-section > button {
+  align-self: flex-start;
+}
+
+.sound-error {
+  color: var(--error);
+  font-weight: 700;
+  white-space: pre-line;
+}
+
+.sound-warning {
+  color: var(--warn);
+  white-space: pre-line;
+}
+
+.sound-error[hidden],
+.sound-warning[hidden],
+.sound-simulation[hidden],
+.simulated-badge[hidden] {
+  display: none;
+}
+
+/* [SPEC-6.5] Shown on the menu while the simulated source is on. */
+.simulated-badge {
+  flex-basis: 100%;
+  margin: 0;
+  text-align: right;
+  font-weight: 700;
+}
+
 /* [SPEC-4.6] Stage of the running app: covers the window, then goes full screen. */
 .app-stage {
   position: fixed;

@@ -5,6 +5,9 @@
 //   light (no PixiJS import).
 // - `app.ts` exports `start: AppFactory`. It is loaded on demand when the app is launched [SPEC-4.3].
 // The folder name is added to `APP_IDS` in `src/apps/registry.ts`.
+import type { SoundLevel } from '../audio/sound-service'
+
+export type { SoundLevel }
 
 /** Needs the host checks before starting the app [SPEC-4.7]. */
 export type AppNeed = 'microphone'
@@ -60,11 +63,14 @@ export interface AppSettings {
   onChange(listener: () => void): () => void
 }
 
-/** What `start` receives [SPEC-4.2]. The sound-level service is added by its own task (SPEC-6). */
+/** What `start` receives [SPEC-4.2]. */
 export interface AppContext {
   /** Element to render into. It fills the screen; the host removes it after `stop()`. */
   container: HTMLElement
   settings: AppSettings
+  /** [SPEC-6.4] [SPEC-6.7] Sound level, refreshed every frame. The microphone is open only for an
+   *  app whose manifest declares the `microphone` need; for any other app, reading it throws. */
+  sound: SoundLevel
 }
 
 /** A started app. After `stop()`, nothing of the app may run: animation loop, listeners,

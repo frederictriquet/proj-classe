@@ -3,6 +3,7 @@
 // [SPEC-5.2]; with two screens they are carried between windows by BroadcastChannel. Every
 // message is plain data (no function, no Error, no DOM node) so it survives structuredClone.
 import type { SettingValue, SettingValues } from '../apps/types'
+import type { SoundReading, SoundStatus } from '../audio/sound-service'
 
 export type HostCommand =
   /** Start an app from the menu. Ignored while another app is starting or running. */
@@ -17,6 +18,12 @@ export type HostCommand =
   | { type: 'dismiss-notice' }
   /** Ask the host to send its state again (a control window that just opened). */
   | { type: 'request-state' }
+  /** [SPEC-7.5] The settings panel shows the live level: keep the microphone open while `on`. */
+  | { type: 'monitor-sound'; on: boolean }
+  /** [SPEC-6.3] Measure the ambient noise for 3 seconds and keep it. */
+  | { type: 'calibrate' }
+  /** [SPEC-6.5] Level of the simulated source, in dBFS. Rejected with the real microphone. */
+  | { type: 'simulate-level'; db: number }
 
 export type HostPhase = 'menu' | 'starting' | 'running'
 
@@ -37,6 +44,8 @@ export interface HostState {
   /** Current settings of every app on the menu, keyed by app id. */
   settings: Record<string, SettingValues>
   notice: HostNotice | null
+  /** [SPEC-6] Sound-level service: microphone open or not, calibration, errors. */
+  sound: SoundStatus
 }
 
 /** What the control side needs: send commands, receive states. In one window the host itself
@@ -45,4 +54,7 @@ export interface HostState {
 export interface HostLink {
   dispatch(command: HostCommand): void
   subscribe(listener: (state: HostState) => void): () => void
+  /** [SPEC-5.5] [SPEC-7.5] Live sound level, every frame while the microphone is open. Kept out
+   *  of HostState: it changes 60 times a second. */
+  subscribeLevel(listener: (reading: SoundReading) => void): () => void
 }

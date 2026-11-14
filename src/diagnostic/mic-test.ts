@@ -2,6 +2,7 @@
 // the audio processing actually applied by Chrome.
 import { computeRms, rmsToDbfs } from '../audio/level'
 import { micErrorText } from '../audio/mic-errors'
+import { processingReport, RAW_AUDIO_CONSTRAINTS } from '../audio/processing'
 import { errorMessage } from '../errors'
 import type { Row } from './rows'
 
@@ -54,10 +55,7 @@ export class MicTest {
     this.button.disabled = true
     try {
       // [SPEC-6.1] Raw signal: automatic gain would distort the measure.
-      this.stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
-        video: false,
-      })
+      this.stream = await navigator.mediaDevices.getUserMedia({ audio: RAW_AUDIO_CONSTRAINTS, video: false })
     } catch (error) {
       this.rows.level.set(micErrorText(error), 'error')
       this.button.disabled = false
@@ -105,9 +103,7 @@ export class MicTest {
 
   private showSettings(track: MediaStreamTrack): void {
     const settings = track.getSettings()
-    const keys = ['echoCancellation', 'noiseSuppression', 'autoGainControl'] as const
-    const lines = keys.map((key) => `${key} : ${settings[key] === undefined ? 'non signalé' : String(settings[key])}`)
-    const allOff = keys.every((key) => settings[key] === false)
+    const { lines, allOff } = processingReport(settings)
     this.rows.processing.set(
       allOff ? `${lines.join('\n')}\nles trois traitements sont désactivés` : `${lines.join('\n')}\nATTENTION : un traitement reste actif ou n'est pas signalé`,
       allOff ? 'ok' : 'warn',

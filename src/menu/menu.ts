@@ -32,7 +32,12 @@ export function renderMenu(root: HTMLElement, registry: AppRegistry, link: HostL
   install.textContent = 'Installer'
   const installMessage = document.createElement('p')
   installMessage.className = 'install-message'
-  header.append(icon, title, install, installMessage)
+  // [SPEC-6.5] Reminds the adult that the level does not come from the microphone.
+  const simulated = document.createElement('p')
+  simulated.className = 'simulated-badge'
+  simulated.textContent = 'Micro simulé : touches + et −'
+  simulated.hidden = true
+  header.append(icon, title, install, installMessage, simulated)
 
   // [SPEC-4.7] [SPEC-4.8] Message for the adult: need not met, error, full screen refused.
   const notice = document.createElement('div')
@@ -76,7 +81,8 @@ export function renderMenu(root: HTMLElement, registry: AppRegistry, link: HostL
     item.append(tile)
     tiles.push(tile)
 
-    if (manifest.settings.length > 0) {
+    // [SPEC-7.5] An app that uses the microphone always has a panel: live level and calibration.
+    if (manifest.settings.length > 0 || manifest.needs.includes('microphone')) {
       const settings = document.createElement('button')
       settings.type = 'button'
       settings.className = 'tile-settings'
@@ -136,6 +142,7 @@ export function renderMenu(root: HTMLElement, registry: AppRegistry, link: HostL
   const unsubscribe = link.subscribe((next) => {
     const backToMenu = state !== undefined && state.phase !== 'menu' && next.phase === 'menu'
     state = next
+    simulated.hidden = !next.sound.simulated
     notice.hidden = next.notice === null
     noticeText.textContent = next.notice?.message ?? ''
     notice.dataset.kind = next.notice?.kind ?? ''

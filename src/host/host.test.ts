@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from 'vitest'
 import { buildRegistry } from '../apps/registry'
 import type { AppContext, AppManifest, AppModule, RunningApp } from '../apps/types'
 import { SettingsStore, type KeyValueStorage } from '../settings/settings'
-import { AppHost, type HostDisplay, type NeedsCheck, type OpenedDisplay } from './host'
+import type { SoundLease, SoundReading, SoundStatus } from '../audio/sound-service'
+import { ExplainedError } from '../errors'
+import { AppHost, type HostDisplay, type HostSound, type OpenedDisplay } from './host'
 import type { HostCommand, HostState } from './protocol'
 
 class MemoryStorage implements KeyValueStorage {
@@ -48,10 +50,81 @@ const DEMO: AppManifest = {
 }
 const MIC: AppManifest = { id: 'mic', title: 'Micro', thumbnail: 'mic.svg', needs: ['microphone'], settings: [] }
 
+/** Sound service that counts the leases still held, so every path can check it gives the
+ *  microphone back [SPEC-6.7]. */
+class FakeSound implements HostSound {
+  status: SoundStatus = {
+    phase: 'off',
+    simulated: false,
+    ambientDb: -60,
+    calibratedAt: null,
+    calibrating: false,
+    error: null,
+    warning: null,
+  }
+  readonly level = { levelDb: -50, ambientDb: -60, aboveAmbientDb: 10 }
+  held = 0
+  acquired = 0
+  failWith: Error | undefined
+  /** When set, acquire waits for `openNow()`. */
+  hold = false
+  private pending: (() => void) | undefined
+  private lostListeners = new Set<(message: string) => void>()
+  private statusListeners = new Set<(status: SoundStatus) => void>()
+  calibrations = 0
+  simulated: number[] = []
+
+  subscribeStatus(listener: (status: SoundStatus) => void) {
+    this.statusListeners.add(listener)
+    listener(this.status)
+    return () => this.statusListeners.delete(listener)
+  }
+  subscribeLevel(listener: (reading: SoundReading) => void) {
+    listener({ rawDb: -50, ...this.level })
+    return () => {}
+  }
+  setStatus(partial: Partial<SoundStatus>) {
+    this.status = { ...this.status, ...partial }
+    for (const listener of this.statusListeners) listener(this.status)
+  }
+  async acquire(onLost?: (message: string) => void): Promise<SoundLease> {
+    if (this.hold) await new Promise<void>((resolve) => (this.pending = resolve))
+    if (this.failWith) {
+      this.setStatus({ error: this.failWith.message })
+      throw this.failWith
+    }
+    this.acquired++
+    this.held++
+    if (onLost) this.lostListeners.add(onLost)
+    let released = false
+    return {
+      release: () => {
+        if (released) return
+        released = true
+        if (onLost) this.lostListeners.delete(onLost)
+        this.held--
+      },
+    }
+  }
+  openNow() {
+    this.pending?.()
+  }
+  lose(message: string) {
+    for (const listener of [...this.lostListeners]) listener(message)
+  }
+  calibrate() {
+    this.calibrations++
+    return Promise.resolve()
+  }
+  simulate(db: number) {
+    this.simulated.push(db)
+  }
+}
+
 /** Resolves pending promises (several await steps in the launch). */
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0))
 
-function setup(options: { start?: AppModule['start']; checkNeeds?: NeedsCheck; display?: Partial<HostDisplay> } = {}) {
+function setup(options: { start?: AppModule['start']; sound?: FakeSound; display?: Partial<HostDisplay> } = {}) {
   const apps: FakeApp[] = []
   const start =
     options.start ??
@@ -74,17 +147,18 @@ function setup(options: { start?: AppModule['start']; checkNeeds?: NeedsCheck; d
     ...options.display,
   }
   const storage = new MemoryStorage()
+  const sound = options.sound ?? new FakeSound()
   const host = new AppHost({
     registry,
     settings: new SettingsStore(storage, (message) => {
       throw new Error(message)
     }),
     display,
-    checkNeeds: options.checkNeeds ?? (() => Promise.resolve(undefined)),
+    sound,
   })
   const states: HostState[] = []
   host.subscribe((state) => states.push(state))
-  return { host, apps, display, load, container, states, storage }
+  return { host, apps, display, load, container, states, storage, sound }
 }
 
 describe('AppHost', () => {
@@ -95,6 +169,7 @@ describe('AppHost', () => {
       appId: null,
       settings: { demo: { speed: 1, big: false }, mic: {} },
       notice: null,
+      sound: new FakeSound().status,
     })
   })
 
@@ -161,17 +236,122 @@ describe('AppHost', () => {
     expect(host.state).toMatchObject({ phase: 'menu', notice: null })
   })
 
-  it('does not start an app whose need is not met and says what to do [SPEC-4.7]', async () => {
-    const message = 'Autorisez le micro puis relancez.'
-    const { host, apps, display, load } = setup({
-      checkNeeds: (needs) => Promise.resolve(needs.includes('microphone') ? message : undefined),
-    })
+  it('does not start an app whose need is not met and says what to do [SPEC-4.7] [SPEC-6.6]', async () => {
+    const sound = new FakeSound()
+    sound.failWith = new ExplainedError('Autorisation refusée. Autorisez le micro, puis réessayez.')
+    const { host, apps, display, load } = setup({ sound })
     host.dispatch({ type: 'launch', appId: 'mic' })
     await settle()
     expect(load).not.toHaveBeenCalled()
     expect(apps).toHaveLength(0)
     expect(display.close).toHaveBeenCalled()
-    expect(host.state).toMatchObject({ phase: 'menu', notice: { kind: 'need', appId: 'mic', message } })
+    expect(host.state).toMatchObject({
+      phase: 'menu',
+      notice: {
+        kind: 'need',
+        appId: 'mic',
+        message: "L'activité a besoin du micro et ne peut pas démarrer.\nAutorisation refusée. Autorisez le micro, puis réessayez.",
+      },
+    })
+    expect(host.state.sound.error).toMatch(/Autorisation refusée/)
+    expect(sound.held).toBe(0)
+  })
+
+  it('opens the microphone only for an app that declared it, and gives it back at stop [SPEC-6.7]', async () => {
+    const { host, apps, sound } = setup()
+    host.dispatch({ type: 'launch', appId: 'demo' })
+    await settle()
+    expect(sound.acquired).toBe(0)
+    // Reading the level without the need is a mistake of the app: it throws.
+    expect(() => apps[0]?.context.sound.aboveAmbientDb).toThrow(/microphone/)
+    host.dispatch({ type: 'stop' })
+
+    host.dispatch({ type: 'launch', appId: 'mic' })
+    await settle()
+    expect(sound.held).toBe(1)
+    expect(apps[1]?.context.sound.aboveAmbientDb).toBe(10)
+    host.dispatch({ type: 'stop' })
+    expect(apps[1]?.running).toBe(false)
+    expect(sound.held).toBe(0)
+  })
+
+  it('gives the microphone back on every failed launch', async () => {
+    const throwing = new FakeSound()
+    const { host: h1 } = setup({
+      sound: throwing,
+      start: () => {
+        throw new Error('boom at start')
+      },
+    })
+    h1.dispatch({ type: 'launch', appId: 'mic' })
+    await settle()
+    expect(h1.state.notice?.message).toContain('boom at start')
+    expect(throwing.held).toBe(0)
+
+    const noDisplay = new FakeSound()
+    const { host: h2 } = setup({ sound: noDisplay, display: { open: () => Promise.reject(new Error('no stage')) } })
+    h2.dispatch({ type: 'launch', appId: 'mic' })
+    await settle()
+    expect(h2.state.notice?.message).toContain('no stage')
+    expect(noDisplay.held).toBe(0)
+
+    // Stopped (Escape) while the microphone was still opening.
+    const slow = new FakeSound()
+    slow.hold = true
+    const { host: h3, load } = setup({ sound: slow })
+    h3.dispatch({ type: 'launch', appId: 'mic' })
+    await settle()
+    h3.dispatch({ type: 'stop' })
+    slow.openNow()
+    await settle()
+    expect(slow.acquired).toBe(1)
+    expect(slow.held).toBe(0)
+    expect(load).not.toHaveBeenCalled()
+  })
+
+  it('goes back to the menu with what to do when the microphone is lost during the run [SPEC-6.6]', async () => {
+    const { host, apps, sound, display } = setup()
+    host.dispatch({ type: 'launch', appId: 'mic' })
+    await settle()
+    sound.lose('Micro perdu en cours de route. Vérifiez le micro, puis relancez.')
+    expect(apps[0]?.running).toBe(false)
+    expect(display.close).toHaveBeenCalled()
+    expect(sound.held).toBe(0)
+    expect(host.state).toMatchObject({
+      phase: 'menu',
+      notice: { kind: 'error', appId: 'mic', message: 'Micro perdu en cours de route. Vérifiez le micro, puis relancez.' },
+    })
+  })
+
+  it('holds the microphone for the settings panel while it shows the live level [SPEC-7.5]', async () => {
+    const { host, sound } = setup()
+    host.dispatch({ type: 'monitor-sound', on: true })
+    host.dispatch({ type: 'monitor-sound', on: true }) // already on: one lease only
+    await settle()
+    expect(sound.held).toBe(1)
+    const readings: SoundReading[] = []
+    host.subscribeLevel((reading) => readings.push(reading))
+    expect(readings).toHaveLength(1)
+    host.dispatch({ type: 'monitor-sound', on: false })
+    expect(sound.held).toBe(0)
+
+    // Panel closed while the microphone was opening: given back as soon as it opens.
+    sound.hold = true
+    host.dispatch({ type: 'monitor-sound', on: true })
+    host.dispatch({ type: 'monitor-sound', on: false })
+    sound.openNow()
+    await settle()
+    expect(sound.held).toBe(0)
+  })
+
+  it('forwards calibration, simulated level and sound status [SPEC-6.3] [SPEC-6.5]', () => {
+    const { host, sound } = setup()
+    host.dispatch({ type: 'calibrate' })
+    expect(sound.calibrations).toBe(1)
+    host.dispatch({ type: 'simulate-level', db: -42 })
+    expect(sound.simulated).toEqual([-42])
+    sound.setStatus({ calibrating: true })
+    expect(host.state.sound.calibrating).toBe(true)
   })
 
   it('goes back to the menu with a message when start throws [SPEC-4.8]', async () => {
@@ -299,6 +479,9 @@ describe('AppHost', () => {
       { type: 'reset-settings', appId: 'demo' },
       { type: 'dismiss-notice' },
       { type: 'request-state' },
+      { type: 'monitor-sound', on: true },
+      { type: 'calibrate' },
+      { type: 'simulate-level', db: -40 },
     ]
     for (const command of commands) expect(structuredClone(command)).toEqual(command)
 
