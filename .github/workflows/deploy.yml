@@ -27,6 +27,10 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      # [SPEC-3.9.1] Start-up test of the build in headless Chromium. A failure stops this job
+      # before the upload, so the deploy job, which needs it, does not run.
+      - run: npx playwright install --with-deps --only-shell chromium
+      - run: npm run test:startup
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:

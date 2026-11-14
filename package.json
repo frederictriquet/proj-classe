@@ -8,7 +8,9 @@
     "build": "tsc --noEmit && vite build && node scripts/check-precache.mjs",
     "preview": "vite preview",
     "test": "vitest run",
-    "generate-icons": "pwa-assets-generator"
+    "generate-icons": "pwa-assets-generator",
+    "test:startup": "node scripts/startup-test.mjs",
+    "test:recovery": "node scripts/recovery-scenario.mjs"
   },
   "dependencies": {
     "pixi.js": "^8.23.0",
@@ -18,6 +20,7 @@
   "devDependencies": {
     "@types/node": "^26.6.6",
     "@vite-pwa/assets-generator": "^2.0.0",
+    "playwright": "1.64.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.8",
     "vite-plugin-pwa": "^2.0.0",
