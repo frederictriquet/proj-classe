@@ -159,6 +159,18 @@ describe('SoundService', () => {
     expect(service.level.ambientDb).toBe(-48)
   })
 
+  it('reads the calibration again after the scene window calibrated [SPEC-5.6]', async () => {
+    const { service, settings, clock, readings } = setup()
+    const lease = await service.acquire()
+    clock.frames(1)
+    settings.data.set(CALIBRATION_KEY, { ambientDb: -55, date: '2026-11-14T10:00:00.000Z' })
+    service.reloadCalibration()
+    expect(service.status).toMatchObject({ ambientDb: -55, calibratedAt: '2026-11-14T10:00:00.000Z' })
+    clock.frames(1)
+    expect(readings.at(-1)).toMatchObject({ ambientDb: -55, aboveAmbientDb: -50 - -55 })
+    lease.release()
+  })
+
   it('reports an unreadable stored calibration and uses the default value', () => {
     const { service, problems } = setup({ stored: { ambientDb: 'loud' } })
     expect(problems).toHaveLength(1)
@@ -282,7 +294,8 @@ describe('SimulatedSource [SPEC-6.5]', () => {
   it('is driven by the + and − keys, not by Cmd + or other keys', () => {
     const target = new EventTarget()
     const source = new SimulatedSource()
-    const stop = listenSimulationKeys(source, target as unknown as Window)
+    const changes: number[] = []
+    const stop = listenSimulationKeys(source, target as unknown as Window, (db) => changes.push(db))
     const press = (key: string, metaKey = false) => target.dispatchEvent(Object.assign(new Event('keydown'), { key, metaKey, ctrlKey: false, altKey: false }))
     press('+')
     press('=')
@@ -293,6 +306,8 @@ describe('SimulatedSource [SPEC-6.5]', () => {
     press('Escape')
     press('ArrowUp')
     expect(source.level).toBe(DEFAULT_AMBIENT_DBFS + 3)
+    // [SPEC-5.5] Each change is passed on, for the scene window.
+    expect(changes).toEqual([DEFAULT_AMBIENT_DBFS + 3, DEFAULT_AMBIENT_DBFS + 6, DEFAULT_AMBIENT_DBFS + 3])
     stop()
     press('+')
     expect(source.level).toBe(DEFAULT_AMBIENT_DBFS + 3)

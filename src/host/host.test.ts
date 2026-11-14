@@ -422,6 +422,17 @@ describe('AppHost', () => {
     expect(apps[0]?.changes).toBe(0)
   })
 
+  it('reads the settings again after the scene window changed them [SPEC-5.6]', () => {
+    const { host, storage } = setup()
+    const other = new SettingsStore(storage, (message) => {
+      throw new Error(message)
+    })
+    other.write('demo', DEMO.settings, 'speed', 2.5)
+    expect(host.state.settings.demo).toEqual({ speed: 1, big: false })
+    host.reloadSettings()
+    expect(host.state.settings.demo).toEqual({ speed: 2.5, big: false })
+  })
+
   it('gives the next launch the settings changed on the menu', async () => {
     const { host, apps } = setup()
     host.dispatch({ type: 'set-setting', appId: 'demo', settingId: 'big', value: true })

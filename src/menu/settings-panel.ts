@@ -66,14 +66,22 @@ function toggleControl(appId: string, declaration: SettingDeclaration & { type: 
   return { row, control }
 }
 
-/** Opens the panel as a modal dialog. Returns a function that closes it. */
-export function openSettingsPanel(manifest: AppManifest, link: HostLink, onClose: () => void): () => void {
-  const dialog = document.createElement('dialog')
-  dialog.className = 'settings-panel'
-  dialog.setAttribute('aria-labelledby', 'settings-panel-title')
-  const title = document.createElement('h2')
-  title.id = 'settings-panel-title'
-  title.textContent = `Réglages : ${manifest.title}`
+/** True when the app has a settings panel: declared settings, or the microphone [SPEC-7.5]. */
+export function hasSettingsPanel(manifest: AppManifest): boolean {
+  return manifest.settings.length > 0 || manifest.needs.includes('microphone')
+}
+
+interface PanelContent {
+  /** Live level (microphone apps) and the declared settings. */
+  elements: HTMLElement[]
+  /** Row of buttons, « Valeurs par défaut » first [SPEC-7.4]. */
+  actions: HTMLElement
+  dispose(): void
+}
+
+/** Controls of the panel, shared by the modal panel of the menu and the panel that stays on the
+ *  control window while the scene runs [SPEC-7.3]. */
+function panelContent(manifest: AppManifest, link: HostLink): PanelContent {
   const list = document.createElement('div')
   list.className = 'settings-list'
   const controls: Control[] = []
@@ -92,16 +100,9 @@ export function openSettingsPanel(manifest: AppManifest, link: HostLink, onClose
   reset.type = 'button'
   reset.textContent = 'Valeurs par défaut'
   reset.addEventListener('click', () => link.dispatch({ type: 'reset-settings', appId: manifest.id }))
-  const close = document.createElement('button')
-  close.type = 'button'
-  close.className = 'primary'
-  close.textContent = 'Fermer'
-  close.addEventListener('click', () => dialog.close())
-  actions.append(reset, close)
+  actions.append(reset)
   // [SPEC-7.5] Live level and « Calibrer » for an app that listens to the classroom.
   const sound = manifest.needs.includes('microphone') ? soundSection(link) : undefined
-  dialog.append(title, ...(sound ? [sound.element] : []), list, actions)
-  document.body.append(dialog)
 
   const unsubscribe = link.subscribe((state) => {
     const values = state.settings[manifest.id]
@@ -111,13 +112,68 @@ export function openSettingsPanel(manifest: AppManifest, link: HostLink, onClose
       if (value !== undefined) control.show(value)
     }
   })
+  return {
+    elements: [...(sound ? [sound.element] : []), list],
+    actions,
+    dispose() {
+      sound?.dispose()
+      unsubscribe()
+    },
+  }
+}
+
+/** Opens the panel as a modal dialog. Returns a function that closes it. */
+export function openSettingsPanel(manifest: AppManifest, link: HostLink, onClose: () => void): () => void {
+  const dialog = document.createElement('dialog')
+  dialog.className = 'settings-panel'
+  dialog.setAttribute('aria-labelledby', 'settings-panel-title')
+  const title = document.createElement('h2')
+  title.id = 'settings-panel-title'
+  title.textContent = `Réglages : ${manifest.title}`
+  const content = panelContent(manifest, link)
+  const close = document.createElement('button')
+  close.type = 'button'
+  close.className = 'primary'
+  close.textContent = 'Fermer'
+  close.addEventListener('click', () => dialog.close())
+  content.actions.append(close)
+  dialog.append(title, ...content.elements, content.actions)
+  document.body.append(dialog)
+
   // The dialog closes with the button or with Escape (native behaviour of a modal dialog).
-  dialog.addEventListener('close', () => {
-    sound?.dispose()
-    unsubscribe()
+  let closed = false
+  const finish = () => {
+    if (closed) return
+    closed = true
+    content.dispose()
     dialog.remove()
     onClose()
-  })
+  }
+  dialog.addEventListener('close', finish)
   dialog.showModal()
-  return () => dialog.close()
+  // The 'close' event comes in a later task: the returned function releases everything at once,
+  // before the caller switches the link to the other screen [SPEC-5.5].
+  return () => {
+    dialog.close()
+    finish()
+  }
+}
+
+/** [SPEC-7.3] [SPEC-7.5] Panel that stays on the control window while the scene runs the app:
+ *  settings applied at once, live level and « Calibrer » for a microphone app. */
+export function inlineSettingsPanel(manifest: AppManifest, link: HostLink): { element: HTMLElement; dispose: () => void } {
+  const section = document.createElement('section')
+  section.className = 'settings-panel settings-inline'
+  section.setAttribute('aria-label', `Réglages : ${manifest.title}`)
+  const title = document.createElement('h2')
+  title.textContent = 'Réglages'
+  const content = panelContent(manifest, link)
+  section.append(title, ...content.elements, content.actions)
+  return {
+    element: section,
+    dispose() {
+      content.dispose()
+      section.remove()
+    },
+  }
 }

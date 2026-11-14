@@ -101,6 +101,7 @@ export interface SoundServiceOptions {
 export class SoundService {
   private readonly source: LevelSource
   private readonly settings: CommonSettings
+  private readonly onProblem: (message: string) => void
   private readonly clock: FrameClock
   private readonly now: () => Date
   private leases = 0
@@ -126,13 +127,10 @@ export class SoundService {
   constructor(options: SoundServiceOptions) {
     this.source = options.source
     this.settings = options.settings
+    this.onProblem = options.onProblem
     this.clock = options.clock ?? animationFrameClock
     this.now = options.now ?? (() => new Date())
-    try {
-      this.calibration = parseCalibration(options.settings.readCommon(CALIBRATION_KEY))
-    } catch (error) {
-      options.onProblem(errorMessage(error))
-    }
+    this.calibration = this.readCalibration()
     const ambientDb = this.calibration?.ambientDb ?? DEFAULT_AMBIENT_DBFS
     this.reading = { rawDb: DBFS_FLOOR, levelDb: DBFS_FLOOR, ambientDb, aboveAmbientDb: DBFS_FLOOR - ambientDb }
     this.current = {
@@ -227,10 +225,30 @@ export class SoundService {
     }
   }
 
+  /** [SPEC-5.6] [SPEC-6.3] Reads the stored calibration again: the scene window may have
+   *  calibrated while it ran the apps. */
+  reloadCalibration(): void {
+    this.calibration = this.readCalibration()
+    const ambientDb = this.calibration?.ambientDb ?? DEFAULT_AMBIENT_DBFS
+    this.reading = { ...this.reading, ambientDb, aboveAmbientDb: this.reading.levelDb - ambientDb }
+    this.setStatus({ ambientDb, calibratedAt: this.calibration?.date ?? null })
+  }
+
   /** [SPEC-6.5] Sets the level of the simulated source. Throws with the microphone. */
   simulate(db: number): void {
     if (!this.source.setLevel) throw new Error("Le niveau ne se règle à la main qu'avec le micro simulé (?micro=simule).")
     this.source.setLevel(db)
+  }
+
+  /** Stored calibration; undefined (default value) when none, or when it is unreadable, which is
+   *  reported to the adult. */
+  private readCalibration(): Calibration | undefined {
+    try {
+      return parseCalibration(this.settings.readCommon(CALIBRATION_KEY))
+    } catch (error) {
+      this.onProblem(errorMessage(error))
+      return undefined
+    }
   }
 
   private ensureOpen(): Promise<void> {

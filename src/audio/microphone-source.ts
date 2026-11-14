@@ -55,7 +55,8 @@ export class MicrophoneSource implements LevelSource {
       if (reached !== 'running') {
         closeAll()
         throw new ExplainedError(
-          `Chrome n'a pas démarré l'audio (état « ${reached} »). Cliquez dans la fenêtre de l'application, puis relancez l'activité.`,
+          // [SPEC-5.5] With two screens, the window to click is the scene, on the projector.
+          `Chrome n'a pas démarré l'audio (état « ${reached} »). Cliquez une fois dans la fenêtre où l'activité s'affiche (sur le projecteur avec deux écrans), puis relancez l'activité.`,
         )
       }
     }

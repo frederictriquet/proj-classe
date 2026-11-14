@@ -16,6 +16,11 @@
   box-sizing: border-box;
 }
 
+/* `hidden` wins over the display set by any rule below. */
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -78,10 +83,78 @@ button:disabled {
   font-size: 2.6rem;
 }
 
-.menu-header .install {
+.header-actions {
+  display: flex;
+  gap: 1rem;
   margin-left: auto;
+}
+
+.menu-header .install,
+.menu-header .project {
   font-size: 1.3rem;
   padding: 0.6rem 1.6rem;
+}
+
+/* [SPEC-5.3] On the dark green header, the primary button needs a light outline. */
+.menu-header .project {
+  border-color: #fff;
+}
+
+/* [SPEC-5.3] [SPEC-5.4] [SPEC-5.6] Where the scene is, and what happened to it. */
+.screen-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  max-width: 1400px;
+  margin: 0 auto 1.5rem;
+  padding: 0.9rem 1.25rem;
+  border-radius: 1.2rem;
+  background: var(--cream);
+  color: var(--ink);
+  font-size: 1.2rem;
+}
+
+.screen-bar p {
+  flex: 1;
+  margin: 0;
+  white-space: pre-line;
+}
+
+.screen-bar button {
+  flex: none;
+}
+
+/* [SPEC-5.5] [SPEC-7.3] Remote shown while the scene runs an app on the other screen. */
+.control-view {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.control-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 2rem;
+}
+
+.control-head h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 2.2rem;
+}
+
+.control-head .back {
+  font-size: 1.6rem;
+  padding: 0.8rem 2rem;
+  border-color: #fff;
+}
+
+.control-head .back:focus-visible {
+  outline: 8px solid #f4c430;
+  outline-offset: 4px;
 }
 
 .install-message {
@@ -213,6 +286,11 @@ button:disabled {
 .settings-panel h2 {
   margin: 0 0 1.25rem;
   font-size: 1.6rem;
+}
+
+/* [SPEC-7.3] The same panel, kept on the control window while the scene runs. */
+.settings-inline {
+  width: auto;
 }
 
 .settings-list {
@@ -461,6 +539,37 @@ button:disabled {
   font-size: 1.4rem;
   font-variant-numeric: tabular-nums;
   pointer-events: none;
+}
+
+/* [SPEC-5.1] [SPEC-5.4] Scene window on the projector: the app alone, and the prompt to go full
+   screen until the window is. */
+.scene {
+  position: fixed;
+  inset: 0;
+  background: var(--green-dark);
+}
+
+.scene-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  border: none;
+  border-radius: 0;
+  background: rgb(0 0 0 / 45%);
+  color: #fff;
+}
+
+.scene-fullscreen span {
+  padding: 2rem 3rem;
+  border: 6px solid #fff;
+  border-radius: 2rem;
+  background: var(--green-dark);
+  font-size: 3rem;
+  font-weight: 700;
 }
 
 /* Scene test window */

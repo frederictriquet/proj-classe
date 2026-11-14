@@ -127,11 +127,7 @@ export class AppHost implements HostLink {
   private monitor: Monitor | undefined
 
   constructor(private readonly options: HostOptions) {
-    const settings: Record<string, SettingValues> = {}
-    for (const { manifest } of options.registry.entries) {
-      settings[manifest.id] = options.settings.read(manifest.id, manifest.settings)
-    }
-    this.current = { phase: 'menu', appId: null, settings, notice: null, sound: options.sound.status }
+    this.current = { phase: 'menu', appId: null, settings: this.readSettings(), notice: null, sound: options.sound.status }
     options.sound.subscribeStatus((sound) => {
       if (sound !== this.current.sound) this.setState({ sound })
     })
@@ -191,6 +187,14 @@ export class AppHost implements HostLink {
         this.options.sound.simulate(command.db)
         break
     }
+  }
+
+  /** [SPEC-5.6] [SPEC-7.1] Reads every app's settings from the store again: the scene window
+   *  changed them while it ran the apps. */
+  reloadSettings(): void {
+    const settings = this.readSettings()
+    this.setState({ settings })
+    if (this.run) this.run.settings.update(settings[this.run.appId] ?? {})
   }
 
   /** [SPEC-4.8] Runtime error of the active app: stop it and go back to the menu with a
@@ -327,6 +331,14 @@ export class AppHost implements HostLink {
     } finally {
       this.setState({ phase: 'menu', appId: null, notice: finalNotice ?? this.current.notice })
     }
+  }
+
+  private readSettings(): Record<string, SettingValues> {
+    const settings: Record<string, SettingValues> = {}
+    for (const { manifest } of this.options.registry.entries) {
+      settings[manifest.id] = this.options.settings.read(manifest.id, manifest.settings)
+    }
+    return settings
   }
 
   private applySettings(appId: string, values: SettingValues): void {

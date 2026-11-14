@@ -1,27 +1,9 @@
 // [SPEC-5.3] [SPEC-5.4] [SPEC-10 V4] Screen detection and a test window opened full screen
 // on the other screen through Chrome's Window Management API.
 import { errorMessage } from '../errors'
+import type { ScreenDetailed, ScreenDetails, ScreenWithExtended, WindowWithScreens } from '../screens/screen-api'
 import { DIAGNOSTIC_CHANNEL, type SceneTestMessage } from './channel'
 import type { Row } from './rows'
-
-interface ScreenDetailed extends Screen {
-  readonly availLeft: number
-  readonly availTop: number
-  readonly left: number
-  readonly top: number
-  readonly isPrimary: boolean
-  readonly isInternal: boolean
-  readonly devicePixelRatio: number
-  readonly label: string
-}
-
-interface ScreenDetails extends EventTarget {
-  readonly screens: readonly ScreenDetailed[]
-  readonly currentScreen: ScreenDetailed
-}
-
-type WindowWithScreens = Window & { getScreenDetails?: () => Promise<ScreenDetails> }
-type ScreenWithExtended = Screen & { isExtended?: boolean }
 
 export interface ScreenRows {
   api: Row
