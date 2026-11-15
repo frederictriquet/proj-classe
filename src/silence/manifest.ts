@@ -2,7 +2,7 @@
 // when the class is quiet and hide at the noise. The activity makes no sound; it listens to the
 // microphone.
 //
-// [SPEC-9.6] The three settings, applied at once [SPEC-7.2]. Kept free of the calm logic so the
+// [SPEC-9.6] The four settings, applied at once [SPEC-7.2]. Kept free of the calm logic so the
 // menu stays light: manifest.test.ts checks that the defaults are DEFAULT_CALM_SETTINGS and the
 // flight mark is `fleeThresholdDb` (calm.ts). The sensitivity goes up to 80 dB so the slider never
 // stops the adult from tolerating more noise: high values are out of the microphone's reach.
@@ -12,8 +12,11 @@ import type { AppManifest } from '../apps/types'
 export const SETTING = {
   /** Alert threshold, dB above the ambient noise: the lower, the more sensitive. */
   alertDb: 'alertDb',
-  /** Seconds of calm for all the animals to be there. */
-  totalS: 'totalS',
+  /** Seconds of calm before the first animal. Keep the former total-duration storage id so
+   *  an adult's saved value (including 300 s) becomes the initial delay. */
+  firstS: 'totalS',
+  /** Seconds of calm between two successive animals. */
+  intervalS: 'intervalS',
   /** Longest alert, in seconds, that does not make the animals flee. */
   toleranceS: 'toleranceS',
 } as const
@@ -26,15 +29,12 @@ export interface SilenceCard {
   title: string
   /** URL of the menu thumbnail. */
   thumbnail: string
+  /** First animal, with its article, for the initial-delay label (e.g. « l’écureuil »). */
+  firstAnimal: string
 }
 
-/** Label of the total duration: either the number of animals, in French words (« six ») in the
- *  common sentence, or a sentence of the activity's own [SPEC-13.1.1]. */
-export type SilenceDuration = { animalCount: string } | { durationLabel: string }
-
-export function silenceManifest(card: SilenceCard & SilenceDuration): AppManifest {
+export function silenceManifest(card: SilenceCard): AppManifest {
   const { id, title, thumbnail } = card
-  const durationLabel = 'durationLabel' in card ? card.durationLabel : `Durée de calme pour que les ${card.animalCount} animaux soient là`
   return {
     id,
     title,
@@ -54,12 +54,22 @@ export function silenceManifest(card: SilenceCard & SilenceDuration): AppManifes
       },
       {
         type: 'slider',
-        id: SETTING.totalS,
-        label: durationLabel,
-        min: 30,
+        id: SETTING.firstS,
+        label: `Délai de calme avant ${card.firstAnimal}`,
+        min: 5,
         max: 300,
-        step: 10,
+        step: 5,
         default: 90,
+        unit: 's',
+      },
+      {
+        type: 'slider',
+        id: SETTING.intervalS,
+        label: 'Délai de calme entre deux animaux',
+        min: 5,
+        max: 300,
+        step: 5,
+        default: 30,
         unit: 's',
       },
       {

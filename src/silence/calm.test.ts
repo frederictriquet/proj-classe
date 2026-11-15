@@ -6,7 +6,6 @@ import {
   CalmLogic,
   comeOutTimes,
   DEFAULT_CALM_SETTINGS,
-  FIRST_OUT_S,
   fleeThresholdDb,
   RECOVERY_S,
   zoneOf,
@@ -17,6 +16,9 @@ import {
 /** Six animals, as many as in the forest, from the least to the most timid. */
 const IDS = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'] as const
 type Id = (typeof IDS)[number]
+
+/** Short timings for the alert/recovery scenarios. Production defaults are tested separately. */
+const SETTINGS: CalmSettings = { ...DEFAULT_CALM_SETTINGS, firstS: 5, intervalS: 17 }
 
 /** Simulated frame: a power of two, so 5 s, 0.5 s and 2 s are whole numbers of steps and the
  *  gauge adds up without rounding. */
@@ -32,7 +34,7 @@ function run(
   logic: CalmLogic<Id>,
   seconds: number,
   db: number,
-  settings: CalmSettings = DEFAULT_CALM_SETTINGS,
+  settings: CalmSettings = SETTINGS,
   onStep?: (t: number, output: CalmOutput<Id>) => void,
 ): CalmOutput<Id> {
   const steps = Math.round(seconds / DT)
@@ -75,92 +77,70 @@ describe('zones [SPEC-9.4] [SPEC-9.6]', () => {
 })
 
 describe('calm gauge and come-out times [SPEC-9.4.1]', () => {
-  it('spreads the six animals from 5 s to the total duration', () => {
-    expect(comeOutTimes(90, 6)).toEqual([5, 22, 39, 56, 73, 90])
-    expect(comeOutTimes(30, 6)).toEqual([5, 10, 15, 20, 25, 30])
-    expect(comeOutTimes(300, 6)).toEqual([5, 64, 123, 182, 241, 300])
-  })
-
-  it('spreads any number of animals the same way [SPEC-9.8]', () => {
-    expect(comeOutTimes(75, 8)).toEqual([5, 15, 25, 35, 45, 55, 65, 75])
-    expect(comeOutTimes(5, 2)).toEqual([5, 5])
-    expect(() => comeOutTimes(90, 1)).toThrow(RangeError)
+  it('uses independent initial and successive delays, regardless of the animal count [SPEC-9.8]', () => {
+    expect(comeOutTimes(300, 30, 6)).toEqual([300, 330, 360, 390, 420, 450])
+    expect(comeOutTimes(90, 30, 6)).toEqual([90, 120, 150, 180, 210, 240])
+    expect(comeOutTimes(5, 10, 8)).toEqual([5, 15, 25, 35, 45, 55, 65, 75])
+    expect(() => comeOutTimes(90, 30, 1)).toThrow(RangeError)
     expect(() => new CalmLogic(['alone'])).toThrow(RangeError)
   })
 
-  it('calls eight animals out in order and settles them all at the total duration [SPEC-9.8]', () => {
-    const eight = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as const
-    const logic = new CalmLogic(eight)
-    const settings = { ...DEFAULT_CALM_SETTINGS, totalS: 75 }
-    const calledAt: number[] = []
-    let output = logic.step(QUIET, 0, settings)
-    for (let i = 1; i <= 75 / DT; i++) {
-      output = logic.step(QUIET, DT, settings)
-      const out = eight.filter((id) => output.targets[id] === 'settled').length
-      // The animals called out are always the least timid ones.
-      expect(eight.slice(0, out).every((id) => output.targets[id] === 'settled')).toBe(true)
-      while (calledAt.length < out) calledAt.push(i * DT)
-      if (i * DT < 75) expect(output.allSettled).toBe(false)
-    }
-    expect(calledAt).toEqual(comeOutTimes(75, 8))
-    expect(output.allSettled).toBe(true)
-    expect(Object.keys(output.targets)).toEqual([...eight])
+  it('honours a 300 s initial delay: the squirrel stays hidden at 5 s and until 5 minutes', () => {
+    const logic = new CalmLogic(IDS)
+    const settings = { ...DEFAULT_CALM_SETTINGS, firstS: 300, intervalS: 30 }
+    expect(allTargets(run(logic, 5, QUIET, settings))).toEqual(hiddenAll)
+    expect(allTargets(run(logic, 295 - DT, QUIET, settings))).toEqual(hiddenAll)
+    expect(logic.step(QUIET, DT, settings).targets.first).toBe('settled')
+    expect(run(logic, 30 - DT, QUIET, settings).targets.second).toBe('hidden')
+    expect(logic.step(QUIET, DT, settings).targets.second).toBe('settled')
   })
 
-  // [SPEC-13.2] The hive: fifteen bees, then two butterflies. The gaps, (totalS - 5) / 16, are not
-  // whole numbers of steps: each animal is called out at the first step past its time.
-  for (const [totalS, gap] of [
-    [30, 1.5625],
-    [90, 5.3125],
-    [300, 18.4375],
-  ] as const) {
-    it(`calls seventeen animals out in order, from 5 s to ${totalS} s, one every ${gap} s [SPEC-13.2] [SPEC-9.8]`, () => {
-      const hive = [...Array.from({ length: 15 }, (_, i) => `bee${i + 1}`), 'butterfly1', 'butterfly2']
-      const logic = new CalmLogic(hive)
-      const settings = { ...DEFAULT_CALM_SETTINGS, totalS }
-      const calledAt: number[] = []
-      let output = logic.step(QUIET, 0, settings)
-      for (let i = 1; i <= totalS / DT; i++) {
-        output = logic.step(QUIET, DT, settings)
-        const out = hive.filter((id) => output.targets[id] === 'settled').length
-        expect(hive.slice(0, out).every((id) => output.targets[id] === 'settled')).toBe(true)
-        while (calledAt.length < out) calledAt.push(i * DT)
-        if (i * DT < totalS) expect(output.allSettled).toBe(false)
-      }
-      const times = comeOutTimes(totalS, hive.length)
-      // Regular gaps from the first animal to the last.
-      expect(times.slice(1).map((t, i) => t - times[i]!)).toEqual(Array.from({ length: 16 }, () => gap))
-      expect(calledAt).toHaveLength(17)
-      expect(calledAt[0]).toBe(FIRST_OUT_S)
-      expect(calledAt[16]).toBe(totalS)
-      for (const [i, t] of times.entries()) {
-        expect(calledAt[i]! - t, hive[i]).toBeGreaterThanOrEqual(0)
-        expect(calledAt[i]! - t, hive[i]).toBeLessThan(DT)
-      }
-      expect(output.allSettled).toBe(true)
-    })
-  }
-
-  for (const totalS of [90, 30]) {
-    it(`continuous silence calls the animals out in order, the sixth at ${totalS} s`, () => {
-      const settings = { ...DEFAULT_CALM_SETTINGS, totalS }
+  for (const [firstS, intervalS] of [[5, 5], [90, 30], [300, 60]] as const) {
+    it(`calls the six animals out after ${firstS} s, then every ${intervalS} s of calm`, () => {
+      const settings = { ...DEFAULT_CALM_SETTINGS, firstS, intervalS }
       const logic = new CalmLogic(IDS)
       const { log, onStep } = comeOutLog()
+      const lastS = firstS + 5 * intervalS
       let settledBefore = false
-      const last = run(logic, totalS, QUIET, settings, (t, output) => {
+      const last = run(logic, lastS, QUIET, settings, (t, output) => {
         onStep(t, output)
-        if (t < totalS && output.allSettled) settledBefore = true
+        if (t < lastS && output.allSettled) settledBefore = true
       })
-      expect(IDS.map((id) => log[id])).toEqual(comeOutTimes(totalS, IDS.length))
-      expect(log.first).toBe(FIRST_OUT_S)
+      expect(IDS.map((id) => log[id])).toEqual(comeOutTimes(firstS, intervalS, IDS.length))
+      expect(log.first).toBe(firstS)
       expect(settledBefore).toBe(false)
       expect(last.allSettled).toBe(true)
-      expect(last.gauge).toBe(totalS)
+      expect(last.gauge).toBe(lastS)
       expect(allTargets(last)).toEqual(IDS.map(() => 'settled'))
     })
   }
 
-  it('keeps everyone settled and the gauge at the total while the calm lasts', () => {
+  for (const count of [8, 17]) {
+    it(`keeps the chosen interval for ${count} animals, including bees and butterflies [SPEC-9.8] [SPEC-13.2]`, () => {
+      const ids = Array.from({ length: count }, (_, i) => `animal${i + 1}`)
+      const logic = new CalmLogic(ids)
+      const settings = { ...DEFAULT_CALM_SETTINGS, firstS: 30, intervalS: 5 }
+      for (let i = 0; i < count; i++) {
+        logic.step(QUIET, (i === 0 ? settings.firstS : settings.intervalS) - DT, settings)
+        const before = logic.step(QUIET, 0, settings)
+        expect(ids.map((id) => before.targets[id])).toEqual(ids.map((_, j) => j < i ? 'settled' : 'hidden'))
+        expect(before.allSettled).toBe(false)
+        const output = logic.step(QUIET, DT, settings)
+        expect(ids.map((id) => output.targets[id])).toEqual(ids.map((_, j) => j <= i ? 'settled' : 'hidden'))
+        expect(output.allSettled).toBe(i === count - 1)
+      }
+    })
+  }
+
+  it('uses the production defaults for the first animal and all following intervals', () => {
+    const logic = new CalmLogic(IDS)
+    expect(run(logic, 90 - DT, QUIET, DEFAULT_CALM_SETTINGS).targets.first).toBe('hidden')
+    expect(logic.step(QUIET, DT, DEFAULT_CALM_SETTINGS).targets.first).toBe('settled')
+    expect(run(logic, 30 - DT, QUIET, DEFAULT_CALM_SETTINGS).targets.second).toBe('hidden')
+    expect(logic.step(QUIET, DT, DEFAULT_CALM_SETTINGS).targets.second).toBe('settled')
+  })
+
+  it('keeps everyone settled and the gauge capped while the calm lasts', () => {
     const logic = new CalmLogic(IDS)
     const output = run(logic, 120, QUIET)
     expect(output.gauge).toBe(90)
@@ -170,8 +150,8 @@ describe('calm gauge and come-out times [SPEC-9.4.1]', () => {
   it('ignores a step without elapsed time', () => {
     const logic = new CalmLogic(IDS)
     run(logic, 4, QUIET)
-    expect(logic.step(QUIET, 0, DEFAULT_CALM_SETTINGS).gauge).toBe(4)
-    expect(logic.step(QUIET, -1, DEFAULT_CALM_SETTINGS).gauge).toBe(4)
+    expect(logic.step(QUIET, 0, SETTINGS).gauge).toBe(4)
+    expect(logic.step(QUIET, -1, SETTINGS).gauge).toBe(4)
   })
 })
 
@@ -187,21 +167,21 @@ describe('alert [SPEC-9.4.2]', () => {
     expect(allTargets(during)).toEqual(['alert', 'alert', 'hidden', 'hidden', 'hidden', 'hidden'])
     expect(during.allSettled).toBe(false)
 
-    const after = logic.step(QUIET, DT, DEFAULT_CALM_SETTINGS)
+    const after = logic.step(QUIET, DT, SETTINGS)
     expect(after.zone).toBe('calm')
     expect(allTargets(after)).toEqual(['settled', 'settled', 'hidden', 'hidden', 'hidden', 'hidden'])
     expect(after.gauge).toBe(30 + DT)
 
     // The third comes out at 39 s of calm: the alert time does not count.
     const { log, onStep } = comeOutLog()
-    run(logic, 9, QUIET, DEFAULT_CALM_SETTINGS, onStep)
+    run(logic, 9, QUIET, SETTINGS, onStep)
     expect(log.third).toBe(9 - DT)
   })
 
   it('an alert lasting exactly the tolerance does not make the animals flee', () => {
     const logic = new CalmLogic(IDS)
     run(logic, 30, QUIET)
-    const output = run(logic, DEFAULT_CALM_SETTINGS.toleranceS, MURMUR)
+    const output = run(logic, SETTINGS.toleranceS, MURMUR)
     expect(allTargets(output).slice(0, 2)).toEqual(['alert', 'alert'])
     expect(output.gauge).toBe(30)
   })
@@ -209,14 +189,14 @@ describe('alert [SPEC-9.4.2]', () => {
   it('an alert longer than the tolerance makes the animals flee', () => {
     const logic = new CalmLogic(IDS)
     run(logic, 30, QUIET)
-    run(logic, DEFAULT_CALM_SETTINGS.toleranceS, MURMUR)
-    const output = logic.step(MURMUR, DT, DEFAULT_CALM_SETTINGS)
+    run(logic, SETTINGS.toleranceS, MURMUR)
+    const output = logic.step(MURMUR, DT, SETTINGS)
     expect(allTargets(output)).toEqual(hiddenAll)
     expect(output.gauge).toBe(0)
   })
 
   it('with no tolerance, the first moment of alert makes the animals flee', () => {
-    const settings = { ...DEFAULT_CALM_SETTINGS, toleranceS: 0 }
+    const settings = { ...SETTINGS, toleranceS: 0 }
     const logic = new CalmLogic(IDS)
     run(logic, 30, QUIET, settings)
     const output = logic.step(MURMUR, DT, settings)
@@ -231,18 +211,29 @@ describe('alert [SPEC-9.4.2]', () => {
       run(logic, 0.375, MURMUR)
       run(logic, 0.25, QUIET)
     }
-    const output = logic.step(QUIET, DT, DEFAULT_CALM_SETTINGS)
+    const output = logic.step(QUIET, DT, SETTINGS)
     expect(allTargets(output).slice(0, 2)).toEqual(['settled', 'settled'])
     expect(output.gauge).toBe(30 + 5 * 0.25 + DT)
   })
 })
 
 describe('noise and recovery [SPEC-9.4.3] [SPEC-9.4.4]', () => {
+  it('restarts the configured 300 s initial delay after a fright and the recovery', () => {
+    const logic = new CalmLogic(IDS)
+    const settings = { ...DEFAULT_CALM_SETTINGS, firstS: 300, intervalS: 60 }
+    expect(run(logic, 300, QUIET, settings).targets.first).toBe('settled')
+    expect(allTargets(logic.step(LOUD, DT, settings))).toEqual(hiddenAll)
+    expect(allTargets(run(logic, RECOVERY_S + 300 - DT, QUIET, settings))).toEqual(hiddenAll)
+    expect(logic.step(QUIET, DT, settings).targets.first).toBe('settled')
+    expect(run(logic, 60 - DT, QUIET, settings).targets.second).toBe('hidden')
+    expect(logic.step(QUIET, DT, settings).targets.second).toBe('settled')
+  })
+
   it('loud noise: immediate flight, gauge to zero, rises again after 2 s of calm', () => {
     const logic = new CalmLogic(IDS)
     expect(run(logic, 90, QUIET).allSettled).toBe(true)
 
-    const noise = logic.step(LOUD, DT, DEFAULT_CALM_SETTINGS)
+    const noise = logic.step(LOUD, DT, SETTINGS)
     expect(noise.zone).toBe('noise')
     expect(allTargets(noise)).toEqual(hiddenAll)
     expect(noise.gauge).toBe(0)
@@ -250,20 +241,20 @@ describe('noise and recovery [SPEC-9.4.3] [SPEC-9.4.4]', () => {
 
     const gauges: number[] = []
     const { log, onStep } = comeOutLog()
-    run(logic, 30, QUIET, DEFAULT_CALM_SETTINGS, (t, output) => {
+    run(logic, 30, QUIET, SETTINGS, (t, output) => {
       onStep(t, output)
       if (t <= RECOVERY_S) gauges.push(output.gauge)
     })
     expect(gauges.every((g) => g === 0)).toBe(true)
     // The first comes out after the recovery plus its usual 5 s.
-    expect(log.first).toBe(RECOVERY_S + FIRST_OUT_S)
+    expect(log.first).toBe(RECOVERY_S + SETTINGS.firstS)
     expect(log.second).toBe(RECOVERY_S + 22)
   })
 
   it('animals that fled do not freeze at a later alert', () => {
     const logic = new CalmLogic(IDS)
     run(logic, 30, QUIET)
-    logic.step(LOUD, DT, DEFAULT_CALM_SETTINGS)
+    logic.step(LOUD, DT, SETTINGS)
     const output = run(logic, 0.25, MURMUR)
     expect(allTargets(output)).toEqual(hiddenAll)
   })
@@ -272,21 +263,21 @@ describe('noise and recovery [SPEC-9.4.3] [SPEC-9.4.4]', () => {
     for (const interruption of [MURMUR, LOUD]) {
       const logic = new CalmLogic(IDS)
       run(logic, 30, QUIET)
-      logic.step(LOUD, DT, DEFAULT_CALM_SETTINGS)
+      logic.step(LOUD, DT, SETTINGS)
       run(logic, 1.5, QUIET)
-      logic.step(interruption, DT, DEFAULT_CALM_SETTINGS)
+      logic.step(interruption, DT, SETTINGS)
       expect(run(logic, RECOVERY_S, QUIET).gauge).toBe(0)
-      expect(logic.step(QUIET, DT, DEFAULT_CALM_SETTINGS).gauge).toBe(DT)
+      expect(logic.step(QUIET, DT, SETTINGS).gauge).toBe(DT)
     }
   })
 
   it('noise before the first animal also resets the gauge', () => {
     const logic = new CalmLogic(IDS)
     expect(run(logic, 4, QUIET).gauge).toBe(4)
-    expect(logic.step(LOUD, DT, DEFAULT_CALM_SETTINGS).gauge).toBe(0)
+    expect(logic.step(LOUD, DT, SETTINGS).gauge).toBe(0)
     const { log, onStep } = comeOutLog()
-    run(logic, 10, QUIET, DEFAULT_CALM_SETTINGS, onStep)
-    expect(log.first).toBe(RECOVERY_S + FIRST_OUT_S)
+    run(logic, 10, QUIET, SETTINGS, onStep)
+    expect(log.first).toBe(RECOVERY_S + SETTINGS.firstS)
   })
 
   it('no recovery delay at the start', () => {
@@ -296,10 +287,27 @@ describe('noise and recovery [SPEC-9.4.3] [SPEC-9.4.4]', () => {
 })
 
 describe('change of settings on the way [SPEC-9.6] [SPEC-7.2]', () => {
+  it('applies a longer initial delay before the first animal comes out', () => {
+    const logic = new CalmLogic(IDS)
+    run(logic, 4, QUIET)
+    const settings = { ...SETTINGS, firstS: 300 }
+    expect(allTargets(run(logic, 296 - DT, QUIET, settings))).toEqual(hiddenAll)
+    expect(logic.step(QUIET, DT, settings).targets.first).toBe('settled')
+  })
+
+  it('applies a shorter initial delay at once without changing the following interval', () => {
+    const logic = new CalmLogic(IDS)
+    run(logic, 40, QUIET, { ...DEFAULT_CALM_SETTINGS, firstS: 300 })
+    const settings = { ...DEFAULT_CALM_SETTINGS, firstS: 30 }
+    expect(allTargets(logic.step(QUIET, 0, settings))).toEqual(['settled', 'hidden', 'hidden', 'hidden', 'hidden', 'hidden'])
+    expect(run(logic, 20 - DT, QUIET, settings).targets.second).toBe('hidden')
+    expect(logic.step(QUIET, DT, settings).targets.second).toBe('settled')
+  })
+
   it('a new sensitivity moves both thresholds at the next step', () => {
     const logic = new CalmLogic(IDS)
-    const sensitive = { ...DEFAULT_CALM_SETTINGS, alertDb: 6 }
-    const tolerant = { ...DEFAULT_CALM_SETTINGS, alertDb: 10 }
+    const sensitive = { ...SETTINGS, alertDb: 6 }
+    const tolerant = { ...SETTINGS, alertDb: 10 }
     run(logic, 30, QUIET, sensitive)
     expect(logic.step(9, DT, sensitive).zone).toBe('alert')
     expect(logic.step(9, DT, tolerant).zone).toBe('calm')
@@ -309,11 +317,11 @@ describe('change of settings on the way [SPEC-9.6] [SPEC-7.2]', () => {
     expect(allTargets(output)).toEqual(hiddenAll)
   })
 
-  it('a longer duration never sends an animal back in; the next ones follow the new times', () => {
-    const short = { ...DEFAULT_CALM_SETTINGS, totalS: 30 }
-    const long = { ...DEFAULT_CALM_SETTINGS, totalS: 90 }
+  it('a longer interval never sends an animal back in; the next ones follow the new times', () => {
+    const short = { ...SETTINGS, firstS: 5, intervalS: 5 }
+    const long = { ...SETTINGS, firstS: 5, intervalS: 17 }
     const logic = new CalmLogic(IDS)
-    // 20 s at 30 s total: the first four are out.
+    // First at 5 s, then every 5 s: the first four are out at 20 s.
     run(logic, 20, QUIET, short)
     const { log, onStep } = comeOutLog()
     let hidingAgain = false
@@ -322,16 +330,16 @@ describe('change of settings on the way [SPEC-9.6] [SPEC-7.2]', () => {
       if (IDS.slice(0, 4).some((id) => output.targets[id] !== 'settled')) hidingAgain = true
     })
     expect(hidingAgain).toBe(false)
-    // At 90 s total, the fifth comes out at 73 s of calm and the sixth at 90 s.
+    // With a 17 s interval, the fifth comes out at 73 s of calm and the sixth at 90 s.
     expect(log.fifth).toBe(73 - 20)
     expect(log.sixth).toBe(90 - 20)
   })
 
-  it('a shorter duration calls out at once the animals whose new time is passed', () => {
+  it('a shorter interval calls out at once the animals whose new time is passed', () => {
     const logic = new CalmLogic(IDS)
-    const before = run(logic, 40, QUIET) // 90 s total: the first three are out
+    const before = run(logic, 40, QUIET) // First at 5 s, then every 17 s: the first three are out
     expect(allTargets(before)).toEqual(['settled', 'settled', 'settled', 'hidden', 'hidden', 'hidden'])
-    const after = logic.step(QUIET, DT, { ...DEFAULT_CALM_SETTINGS, totalS: 30 })
+    const after = logic.step(QUIET, DT, { ...SETTINGS, firstS: 5, intervalS: 5 })
     expect(after.gauge).toBe(30)
     expect(after.allSettled).toBe(true)
   })
@@ -339,9 +347,9 @@ describe('change of settings on the way [SPEC-9.6] [SPEC-7.2]', () => {
   it('a lower tolerance applies to the alert under way', () => {
     const logic = new CalmLogic(IDS)
     run(logic, 30, QUIET)
-    const patient = { ...DEFAULT_CALM_SETTINGS, toleranceS: 1 }
+    const patient = { ...SETTINGS, toleranceS: 1 }
     expect(run(logic, 0.75, MURMUR, patient).targets.first).toBe('alert')
-    const output = logic.step(MURMUR, DT, { ...DEFAULT_CALM_SETTINGS, toleranceS: 0.5 })
+    const output = logic.step(MURMUR, DT, { ...SETTINGS, toleranceS: 0.5 })
     expect(allTargets(output)).toEqual(hiddenAll)
   })
 })
@@ -350,9 +358,9 @@ describe('reward signal [SPEC-9.5]', () => {
   it('holds while the six are out and the class is calm, not during an alert nor after a flight', () => {
     const logic = new CalmLogic(IDS)
     expect(run(logic, 90, QUIET).allSettled).toBe(true)
-    expect(logic.step(MURMUR, DT, DEFAULT_CALM_SETTINGS).allSettled).toBe(false)
-    expect(logic.step(QUIET, DT, DEFAULT_CALM_SETTINGS).allSettled).toBe(true)
-    expect(logic.step(LOUD, DT, DEFAULT_CALM_SETTINGS).allSettled).toBe(false)
+    expect(logic.step(MURMUR, DT, SETTINGS).allSettled).toBe(false)
+    expect(logic.step(QUIET, DT, SETTINGS).allSettled).toBe(true)
+    expect(logic.step(LOUD, DT, SETTINGS).allSettled).toBe(false)
     expect(run(logic, 10, QUIET).allSettled).toBe(false)
   })
 })

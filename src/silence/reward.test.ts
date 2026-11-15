@@ -6,6 +6,7 @@ import { fadeLevel, REWARD_FADE, rewardActive } from './reward'
 /** Six animals, as many as in the forest. */
 const IDS = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'] as const
 type Id = (typeof IDS)[number]
+const LAST_OUT_S = DEFAULT_CALM_SETTINGS.firstS + (IDS.length - 1) * DEFAULT_CALM_SETTINGS.intervalS
 
 const DT = 1 / 64
 const QUIET = 0
@@ -23,7 +24,7 @@ const all = (state: AnimalState): AnimalState[] => IDS.map(() => state)
 describe('rewardActive [SPEC-9.5]', () => {
   it('waits until the six animals are settled on screen, not only called out', () => {
     const logic = new CalmLogic(IDS)
-    const called = run(logic, DEFAULT_CALM_SETTINGS.totalS, QUIET)
+    const called = run(logic, LAST_OUT_S, QUIET)
     expect(called.allSettled).toBe(true)
     const walking: AnimalState[] = [...all('settled').slice(0, 5), 'approaching']
     expect(rewardActive(false, called, walking)).toBe(false)
@@ -32,13 +33,13 @@ describe('rewardActive [SPEC-9.5]', () => {
 
   it('does not start before the logic calls the sixth animal', () => {
     const logic = new CalmLogic(IDS)
-    const early = run(logic, DEFAULT_CALM_SETTINGS.totalS / 2, QUIET)
+    const early = run(logic, LAST_OUT_S / 2, QUIET)
     expect(rewardActive(false, early, all('settled'))).toBe(false)
   })
 
   it('lasts through a short alert and ends at the first flight', () => {
     const logic = new CalmLogic(IDS)
-    run(logic, DEFAULT_CALM_SETTINGS.totalS, QUIET)
+    run(logic, LAST_OUT_S, QUIET)
     // Short alert, under the tolerance: frozen animals, reward kept.
     const alert = run(logic, DEFAULT_CALM_SETTINGS.toleranceS / 2, MURMUR)
     expect(alert.zone).toBe('alert')
@@ -52,7 +53,7 @@ describe('rewardActive [SPEC-9.5]', () => {
 
   it('ends when an alert lasts longer than the tolerance', () => {
     const logic = new CalmLogic(IDS)
-    run(logic, DEFAULT_CALM_SETTINGS.totalS, QUIET)
+    run(logic, LAST_OUT_S, QUIET)
     const long = run(logic, DEFAULT_CALM_SETTINGS.toleranceS + 2 * DT, MURMUR)
     expect(rewardActive(true, long, all('alert'))).toBe(false)
   })
@@ -76,7 +77,7 @@ describe('rewardActive with eight animals [SPEC-9.8]', () => {
     const eight = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as const
     const logic = new CalmLogic(eight)
     let output = logic.step(QUIET, DT, DEFAULT_CALM_SETTINGS)
-    for (let i = 0; i < Math.round(DEFAULT_CALM_SETTINGS.totalS / DT); i++) output = logic.step(QUIET, DT, DEFAULT_CALM_SETTINGS)
+    for (let i = 0; i < Math.round((DEFAULT_CALM_SETTINGS.firstS + (eight.length - 1) * DEFAULT_CALM_SETTINGS.intervalS) / DT); i++) output = logic.step(QUIET, DT, DEFAULT_CALM_SETTINGS)
     expect(output.allSettled).toBe(true)
     const settled: AnimalState[] = eight.map(() => 'settled')
     expect(rewardActive(false, output, settled.slice(0, 6))).toBe(false)

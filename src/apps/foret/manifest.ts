@@ -5,4 +5,4 @@ import { silenceManifest } from '../../silence/manifest'
 import type { AppManifest } from '../types'
 import thumbnail from './thumbnail.svg'
 
-export const manifest: AppManifest = silenceManifest({ id: 'foret', title: 'Forêt du silence', thumbnail, animalCount: 'six' })
+export const manifest: AppManifest = silenceManifest({ id: 'foret', title: 'Forêt du silence', thumbnail, firstAnimal: 'l’écureuil' })

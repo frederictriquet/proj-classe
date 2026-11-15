@@ -49,7 +49,8 @@ export async function startSilence<Id extends string, D extends Decor>(context: 
   // [SPEC-9.6] [SPEC-7.2] Read again at every change, used from the next frame on.
   const readSettings = (): CalmSettings => ({
     alertDb: context.settings.number(SETTING.alertDb),
-    totalS: context.settings.number(SETTING.totalS),
+    firstS: context.settings.number(SETTING.firstS),
+    intervalS: context.settings.number(SETTING.intervalS),
     toleranceS: context.settings.number(SETTING.toleranceS),
   })
   let settings = readSettings()

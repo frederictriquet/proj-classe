@@ -3,7 +3,7 @@ import { DEFAULT_CALM_SETTINGS, fleeThresholdDb } from './calm'
 import { SETTING, silenceManifest } from './manifest'
 import { METER, meterFraction, meterMarks } from './meter'
 
-const manifest = silenceManifest({ id: 'essai', title: 'Essai', thumbnail: 'essai.svg', animalCount: 'huit' })
+const manifest = silenceManifest({ id: 'essai', title: 'Essai', thumbnail: 'essai.svg', firstAnimal: 'le premier animal' })
 
 describe('meterFraction [SPEC-9.7]', () => {
   it('places the scale from 6 dB below the ambient noise to 90 dB above', () => {
