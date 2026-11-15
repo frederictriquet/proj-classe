@@ -66,6 +66,7 @@ describe('palette of the cardiac coherence [SPEC-8.3] [SPEC-8.3.2] [SPEC-15.5]',
       ['butter', 'dusk', 'stars in the upper sky'],
       ['cream', 'dusk', 'small bubbles in the upper sky'],
       ['cream', 'lavender', 'small bubbles in the lower sky'],
+      ['ink', 'pink', 'eyes and smile of the face on the bubble [SPEC-15.6]'],
     ])
   })
 })

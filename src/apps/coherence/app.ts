@@ -1,11 +1,12 @@
 // [SPEC-15] « Cohérence cardiaque »: a big pastel bubble goes up while the class breathes in and
 // down while it breathes out, in front of an evening sky with still stars and small bubbles rising
-// slowly. Paper cut-out style [SPEC-8.1], palette colours only [SPEC-8.3.2], no text, no sound.
+// slowly. At the end of the set duration it turns into a smiling face [SPEC-15.6]. Paper cut-out
+// style [SPEC-8.1], palette colours only [SPEC-8.3.2], no text, no sound.
 import { Application, Container, Graphics } from 'pixi.js'
 import { paperShadow } from '../../art/palette'
 import type { AppContext, RunningApp } from '../types'
-import { advance, rise, START } from './breath'
 import { PALETTE } from './palette'
+import { SESSION_START, step, view } from './session'
 
 /** [SPEC-15.2] [SPEC-15.4] Path of the bubble's centre, as shares of the screen height: it stays in
  *  the central safe area, above the hills [SPEC-8.6]. */
@@ -38,7 +39,25 @@ const SMALL_BUBBLES: readonly (readonly [number, number, number, number])[] = [
   [0.84, 0.011, 44, 0.45], [0.93, 0.016, 56, 0.9],
 ]
 
-function drawBubble(): { root: Container; halo: Graphics } {
+/** [SPEC-15.6] The face on the bubble, `amount` from 0 (none) to 1 (full smile): closed happy
+ *  eyes, a smile that deepens and pink cheeks. */
+function drawFace(g: Graphics, amount: number): void {
+  const line = { width: 8, color: PALETTE.ink, cap: 'round' as const }
+  g.clear()
+    .circle(-62, 24, 15)
+    .circle(62, 24, 15)
+    .fill({ color: PALETTE.rose, alpha: 0.7 })
+    .moveTo(-50, 0)
+    .quadraticCurveTo(-34, -20, -18, 0)
+    .moveTo(18, 0)
+    .quadraticCurveTo(34, -20, 50, 0)
+    .moveTo(-36, 28)
+    .quadraticCurveTo(0, 28 + 44 * amount, 36, 28)
+    .stroke(line)
+  g.alpha = amount
+}
+
+function drawBubble(): { root: Container; halo: Graphics; face: Graphics } {
   const root = new Container()
   const halo = new Graphics()
   for (const scale of [1.5, 1.32, 1.16]) halo.circle(0, 0, UNIT * scale).fill({ color: PALETTE.cream, alpha: 0.08 })
@@ -52,8 +71,10 @@ function drawBubble(): { root: Container; halo: Graphics } {
   shine.position.set(-42, -46)
   shine.rotation = -0.7
   const dot = new Graphics().circle(-14, -70, 8).fill({ color: PALETTE.cream, alpha: 0.9 })
-  root.addChild(halo, shadow, body, shine, dot)
-  return { root, halo }
+  const face = new Graphics()
+  drawFace(face, 0)
+  root.addChild(halo, shadow, body, shine, dot, face)
+  return { root, halo, face }
 }
 
 /** A hill line across the whole width, crest at `crest` (pixels), with two soft bumps. */
@@ -118,14 +139,17 @@ export async function start(context: AppContext): Promise<RunningApp> {
   const hills = new Graphics()
   app.stage.addChild(sky, small, bubble.root, hills)
 
-  let breath = START
+  let session = SESSION_START
+  let drawnFace = 0
   let clock = 0
   let drawnWidth = 0
   let drawnHeight = 0
 
   // The app's own ticker: destroying the application stops it [SPEC-4.2].
   app.ticker.add((ticker) => {
-    const dt = ticker.deltaMS / 1000
+    // [SPEC-15.3] [SPEC-15.6] Raw frame time, not the ticker's capped delta: the exercise lasts the
+    // set minutes of real time even when frames are slow.
+    const dt = ticker.elapsedMS / 1000
     clock += dt
     const { width, height } = app.screen
     if (width !== drawnWidth || height !== drawnHeight) {
@@ -136,8 +160,17 @@ export async function start(context: AppContext): Promise<RunningApp> {
     const side = Math.min(width, height)
 
     // [SPEC-15.2] [SPEC-15.3] Settings are read every frame, so a change applies at once [SPEC-7.2].
-    breath = advance(breath, dt, { inhale: context.settings.number('inhale'), exhale: context.settings.number('exhale') })
-    const r = rise(breath)
+    session = step(session, dt, {
+      inhale: context.settings.number('inhale'),
+      exhale: context.settings.number('exhale'),
+      total: context.settings.number('total') * 60,
+    })
+    const { rise: r, face } = view(session)
+    // [SPEC-15.6] The face is redrawn only while it changes.
+    if (face !== drawnFace) {
+      drawFace(bubble.face, face)
+      drawnFace = face
+    }
     bubble.root.position.set(width / 2, height * (BOTTOM_Y + (TOP_Y - BOTTOM_Y) * r))
     bubble.root.scale.set(((RADIUS * side) / UNIT) * (1 + GROWTH * r))
     bubble.halo.alpha = 0.6 + 0.4 * r

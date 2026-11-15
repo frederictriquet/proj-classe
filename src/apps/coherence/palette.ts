@@ -7,7 +7,7 @@
 // The bubble is a very light pink, the sky behind it a deeper lavender, so that the bubble keeps a
 // clear lightness gap on a washed-out projector (see palette.test.ts).
 export const PALETTE = {
-  /** Paper shadows (with transparency). */
+  /** Paper shadows (with transparency), eyes and smile of the face at the end [SPEC-15.6]. */
   ink: '#3A3255',
   /** Highlights and halo of the bubble, small rising bubbles. */
   cream: '#FFF8EE',
@@ -17,7 +17,7 @@ export const PALETTE = {
   lavender: '#9C94D8',
   /** The big breathing bubble. */
   pink: '#FFD3E1',
-  /** Rim of the big bubble. */
+  /** Rim of the big bubble, cheeks of the face (with transparency). */
   rose: '#F4A7BF',
   /** Hills at the bottom. */
   mint: '#9ED9C0',
