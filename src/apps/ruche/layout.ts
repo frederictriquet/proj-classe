@@ -83,6 +83,10 @@ export const COMB = {
   wall: 6,
 } as const
 
+/** Centre to corner of the honey or the hollow of a cell, inside its wax walls: the decor draws the
+ *  cells with it, and the reward fills the empty ones to the same edge [SPEC-13.4]. */
+export const CELL_INNER_RADIUS = COMB.cellRadius - COMB.wall / Math.sqrt(3)
+
 /** Inside of the frame, where the cells lie. */
 export const COMB_INNER: Rect = {
   x: COMB.frame.x + COMB.bar,

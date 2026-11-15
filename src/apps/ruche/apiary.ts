@@ -19,6 +19,7 @@ import { AMBIENT, dropAt } from './ambient'
 import {
   BEE_FLOWERS,
   BIG_FLOWERS,
+  CELL_INNER_RADIUS,
   CELLS,
   CLUMP,
   COMB,
@@ -240,7 +241,7 @@ function hexagon(g: Graphics, x: number, y: number, r: number): Graphics {
  *  over its cells, for the reward. */
 function drawComb(): { node: Container; comb: Container } {
   const node = new Container()
-  const { frame, bar, lug, legs, legWidth, groundY, cellRadius, wall } = COMB
+  const { frame, bar, lug, legs, legWidth, groundY } = COMB
   const bottom = frame.y + frame.height
   for (const x of legs) node.addChild(piece((g) => g.rect(x, bottom - 10, legWidth, groundY - bottom + 10), PALETTE.brown))
   node.addChild(
@@ -256,7 +257,7 @@ function drawComb(): { node: Container; comb: Container } {
   const inner = COMB_INNER
   node.addChild(new Graphics().rect(inner.x, inner.y, inner.width, inner.height).fill(PALETTE.cream))
   // Cells: the wax walls are the cream between them.
-  const r = cellRadius - wall / Math.sqrt(3)
+  const r = CELL_INNER_RADIUS
   const full = new Graphics()
   const empty = new Graphics()
   const depth = new Graphics()
