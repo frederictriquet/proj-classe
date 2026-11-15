@@ -80,7 +80,7 @@ function runControl(updates: UpdateGate): Promise<void> {
     link,
     onSingle: () => {
       host.reloadSettings()
-      sound.reloadCalibration()
+      sound.reloadCommonSettings()
     },
     onSceneError: (message) => showError(`fenêtre de la scène : ${message}`),
   })

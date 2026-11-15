@@ -3,7 +3,8 @@ import { ExplainedError } from '../errors'
 import { CALIBRATION_MS, DEFAULT_AMBIENT_DBFS } from './level'
 import { processingReport, processingWarning } from './processing'
 import { isSimulationRequested, listenSimulationKeys, SimulatedSource } from './simulated-source'
-import { CALIBRATION_KEY, NO_SIGNAL_TEXT, SoundService, type CommonSettings, type FrameClock, type SoundReading } from './sound-service'
+import { MICROPHONE_KEY, type MicrophoneInfo } from './microphone-choice'
+import { CALIBRATION_KEY, MICROPHONE_CHANGED_TEXT, noSignalText, SoundService, type CommonSettings, type FrameClock, type SoundReading } from './sound-service'
 import type { LevelSource, OpenedSource } from './source'
 
 /** Frame scheduler driven by the test, like requestAnimationFrame. */
@@ -41,12 +42,37 @@ class FakeSource implements LevelSource {
   closes = 0
   failWith: Error | undefined
   warning: string | undefined
+  device: string | undefined = 'Micro MacBook Air'
   lose: ((message: string) => void) | undefined
-  open(onLost: (message: string) => void): Promise<OpenedSource> {
+  /** [SPEC-6.8] Microphone asked at each opening. */
+  openedWith: (MicrophoneInfo | null)[] = []
+  microphones: MicrophoneInfo[] = []
+  listFails: Error | undefined
+  onMicrophonesChange: (() => void) | undefined
+  /** When set, an opening waits for `finishOpen()`. */
+  hold = false
+  private pending: (() => void) | undefined
+  open(onLost: (message: string) => void, microphone: MicrophoneInfo | null): Promise<OpenedSource> {
     this.opens++
-    if (this.failWith) return Promise.reject(this.failWith)
-    this.lose = onLost
-    return Promise.resolve({ read: () => this.db, warning: this.warning, close: () => this.closes++ })
+    this.openedWith.push(microphone)
+    const failWith = this.failWith
+    const opened = (): OpenedSource => {
+      this.lose = onLost
+      return { read: () => this.db, warning: this.warning, device: microphone?.label ?? this.device, close: () => this.closes++ }
+    }
+    if (!this.hold) return failWith ? Promise.reject(failWith) : Promise.resolve(opened())
+    return new Promise((resolve, reject) => {
+      this.pending = () => (failWith ? reject(failWith) : resolve(opened()))
+    })
+  }
+  finishOpen() {
+    this.pending?.()
+  }
+  listMicrophones(): Promise<MicrophoneInfo[]> {
+    return this.listFails ? Promise.reject(this.listFails) : Promise.resolve(this.microphones)
+  }
+  watchMicrophones(listener: () => void) {
+    this.onMicrophonesChange = listener
   }
   get isOpen(): boolean {
     return this.opens - this.closes > 0 && this.failWith === undefined
@@ -164,7 +190,7 @@ describe('SoundService', () => {
     const lease = await service.acquire()
     clock.frames(1)
     settings.data.set(CALIBRATION_KEY, { ambientDb: -55, date: '2026-11-14T10:00:00.000Z' })
-    service.reloadCalibration()
+    service.reloadCommonSettings()
     expect(service.status).toMatchObject({ ambientDb: -55, calibratedAt: '2026-11-14T10:00:00.000Z' })
     clock.frames(1)
     expect(readings.at(-1)).toMatchObject({ ambientDb: -55, aboveAmbientDb: -50 - -55 })
@@ -187,6 +213,8 @@ describe('SoundService', () => {
     await done
     expect(service.status.calibrating).toBe(false)
     expect(service.status.error).toMatch(/Calibrage impossible.*aucun son/s)
+    // [SPEC-6.6] The message is shown as is, without the technical error name.
+    expect(service.status.error).not.toContain('Error :')
     expect(service.status.calibratedAt).toBeNull()
     expect(settings.data.has(CALIBRATION_KEY)).toBe(false)
   })
@@ -229,7 +257,17 @@ describe('SoundService', () => {
     fake.lose?.('Micro perdu.')
     await done
     expect(service.status).toMatchObject({ calibrating: false, calibratedAt: null })
-    expect(service.status.error).toMatch(/Calibrage impossible.*Micro perdu/s)
+    expect(service.status.error).toBe('Calibrage impossible. Micro perdu.')
+  })
+
+  it('names the microphone the browser opened, while measuring only [SPEC-6.6]', async () => {
+    const { service, source } = setup()
+    ;(source as FakeSource).device = 'Hue Sync Audio'
+    expect(service.status.device).toBeNull()
+    const lease = await service.acquire()
+    expect(service.status.device).toBe('Hue Sync Audio')
+    lease.release()
+    expect(service.status.device).toBeNull()
   })
 
   it('shows the warning of a source whose audio processing stayed on [SPEC-6.1]', async () => {
@@ -244,13 +282,14 @@ describe('SoundService', () => {
   it('warns after 2 s of exact silence (microphone muted by macOS) and clears it when sound comes back [SPEC-6.6]', async () => {
     const { service, source, clock } = setup()
     const fake = source as FakeSource
+    fake.device = 'Hue Sync Audio'
     fake.db = -100
     fake.warning = 'autoGainControl : true'
     await service.acquire()
     clock.frames(60) // 1 s
     expect(service.status.warning).toBe('autoGainControl : true')
     clock.frames(70)
-    expect(service.status.warning).toBe(`autoGainControl : true\n${NO_SIGNAL_TEXT}`)
+    expect(service.status.warning).toBe(`autoGainControl : true\n${noSignalText('Hue Sync Audio')}`)
     fake.db = -70
     clock.frames(1)
     expect(service.status.warning).toBe('autoGainControl : true')
@@ -323,5 +362,160 @@ describe('processingReport [SPEC-6.1]', () => {
     expect(processingWarning(agc)).toMatch(/autoGainControl : true/)
     expect(processingReport({ echoCancellation: false, autoGainControl: false }).lines).toContain('noiseSuppression : non signalé')
     expect(processingReport({ echoCancellation: false, autoGainControl: false }).allOff).toBe(false)
+  })
+})
+
+describe('noSignalText [SPEC-6.6]', () => {
+  it('names the silent microphone and points to the microphone menu of the panel [SPEC-6.8]', () => {
+    const text = noSignalText('Hue Sync Audio')
+    expect(text).toContain('« Hue Sync Audio »')
+    expect(text).toContain('menu « Micro »')
+  })
+
+  it('reads without a name when the browser gives none', () => {
+    expect(noSignalText(null)).toMatch(/^Le micro ne renvoie aucun son/)
+  })
+})
+
+describe('SoundService, choice of the microphone [SPEC-6.8]', () => {
+  const USB: MicrophoneInfo = { id: 'usb-1', label: 'Micro USB' }
+  const BUILT_IN: MicrophoneInfo = { id: 'mac-1', label: 'Micro MacBook Air' }
+
+  it('opens the chosen microphone and keeps the choice in the common settings', async () => {
+    const { service, source, settings } = setup()
+    const fake = source as FakeSource
+    service.chooseMicrophone(USB)
+    expect(fake.opens).toBe(0) // nothing held: nothing opened
+    expect(settings.data.get(MICROPHONE_KEY)).toEqual(USB)
+    expect(service.status.microphone).toEqual(USB)
+    const lease = await service.acquire()
+    expect(fake.openedWith).toEqual([USB])
+    expect(service.status.device).toBe('Micro USB')
+    lease.release()
+
+    const again = setup({ stored: undefined })
+    again.settings.data.set(MICROPHONE_KEY, USB)
+    const reread = new SoundService({ source: new FakeSource(), settings: again.settings, onProblem: () => {}, clock: again.clock })
+    expect(reread.status.microphone).toEqual(USB)
+  })
+
+  it('reopens an open microphone with the new choice and clears the calibration', async () => {
+    const { service, source, settings } = setup({ stored: { ambientDb: -48, date: '2026-11-13T08:00:00.000Z' } })
+    const fake = source as FakeSource
+    const lease = await service.acquire()
+    service.chooseMicrophone(USB)
+    await settle()
+    expect(fake.closes).toBe(1)
+    expect(fake.openedWith).toEqual([null, USB])
+    expect(service.status).toMatchObject({ phase: 'on', microphone: USB, calibratedAt: null, ambientDb: DEFAULT_AMBIENT_DBFS })
+    expect(settings.data.get(CALIBRATION_KEY)).toBeUndefined()
+    expect(service.level.ambientDb).toBe(DEFAULT_AMBIENT_DBFS)
+    lease.release()
+    expect(fake.closes).toBe(2)
+  })
+
+  it('interrupts a calibration when the microphone changes, and keeps saying so once reopened', async () => {
+    const { service, source, clock, settings } = setup()
+    const fake = source as FakeSource
+    const panel = await service.acquire()
+    const done = service.calibrate()
+    await settle()
+    clock.frames(30)
+    fake.hold = true // the new microphone opens after the calibration has failed, as in Chrome
+    service.chooseMicrophone(USB)
+    await done
+    fake.finishOpen()
+    await settle()
+    expect(service.status).toMatchObject({ phase: 'on', error: `Calibrage impossible. ${MICROPHONE_CHANGED_TEXT}` })
+    expect(settings.data.get(CALIBRATION_KEY)).toBeUndefined()
+    panel.release()
+    expect(fake.isOpen).toBe(false)
+  })
+
+  it('closes a reopened microphone whose leases were given back while it opened [SPEC-6.7]', async () => {
+    const { service, source } = setup()
+    const fake = source as FakeSource
+    const lease = await service.acquire()
+    fake.hold = true
+    service.chooseMicrophone(USB)
+    lease.release()
+    fake.finishOpen()
+    await settle()
+    expect(fake.opens).toBe(2)
+    expect(fake.closes).toBe(2)
+    expect(service.status.phase).toBe('off')
+  })
+
+  it('tells the lease holders when the new microphone cannot open, then opens at the next choice', async () => {
+    const { service, source } = setup()
+    const fake = source as FakeSource
+    const onLost = vi.fn()
+    const lease = await service.acquire(onLost)
+    fake.failWith = new ExplainedError('Le micro choisi « Micro USB » est introuvable.')
+    service.chooseMicrophone(USB)
+    await settle()
+    expect(onLost).toHaveBeenCalledWith('Le micro choisi « Micro USB » est introuvable.')
+    expect(service.status).toMatchObject({ phase: 'off', error: 'Le micro choisi « Micro USB » est introuvable.' })
+    fake.failWith = undefined
+    service.chooseMicrophone(null) // the lease is still held: the panel stays open
+    await settle()
+    expect(service.status).toMatchObject({ phase: 'on', error: null, microphone: null })
+    expect(fake.openedWith).toEqual([null, USB, null])
+    lease.release()
+  })
+
+  it('opens the latest choice when it changed while the microphone was opening', async () => {
+    const { service, source } = setup()
+    const fake = source as FakeSource
+    fake.hold = true
+    const acquiring = service.acquire()
+    service.chooseMicrophone(USB)
+    fake.finishOpen() // the opening with Chrome's choice ends
+    await settle()
+    fake.finishOpen() // then the one with the USB microphone
+    const lease = await acquiring
+    expect(fake.openedWith).toEqual([null, USB])
+    expect(fake.closes).toBe(1)
+    expect(service.status).toMatchObject({ phase: 'on', device: 'Micro USB' })
+    lease.release()
+  })
+
+  it('lists the microphones, again after an opening and when one is plugged', async () => {
+    const fake = new FakeSource()
+    fake.microphones = [BUILT_IN]
+    const { service } = setup({ source: fake })
+    await settle()
+    expect(service.status.microphones).toEqual([BUILT_IN])
+    fake.microphones = [BUILT_IN, USB]
+    fake.onMicrophonesChange?.()
+    await settle()
+    expect(service.status.microphones).toEqual([BUILT_IN, USB])
+    fake.listFails = new Error('enumerateDevices refusé')
+    fake.onMicrophonesChange?.()
+    await settle()
+    expect(service.status.error).toBe('Liste des micros indisponible. Error : enumerateDevices refusé')
+  })
+
+  it('reports an unreadable stored microphone and uses the one Chrome picks', () => {
+    const settings = new MemoryCommon()
+    settings.data.set(MICROPHONE_KEY, 'Micro USB')
+    const problems: string[] = []
+    const service = new SoundService({ source: new FakeSource(), settings, onProblem: (m) => problems.push(m), clock: new ManualClock() })
+    expect(service.status.microphone).toBeNull()
+    expect(problems).toEqual([expect.stringContaining('Micro choisi enregistré illisible')])
+  })
+
+  it('reopens with the microphone the scene window chose [SPEC-5.6]', async () => {
+    const { service, source, settings } = setup()
+    const fake = source as FakeSource
+    const lease = await service.acquire()
+    service.reloadCommonSettings() // nothing changed: the microphone stays open
+    expect(fake.opens).toBe(1)
+    settings.data.set(MICROPHONE_KEY, USB)
+    service.reloadCommonSettings()
+    await settle()
+    expect(fake.openedWith).toEqual([null, USB])
+    expect(service.status.microphone).toEqual(USB)
+    lease.release()
   })
 })

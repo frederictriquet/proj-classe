@@ -1,11 +1,24 @@
 // [SPEC-6.6] [SPEC-4.7] French explanation of a microphone failure, with what to do.
 import { errorMessage } from '../errors'
+import type { MicrophoneInfo } from './microphone-choice'
 
 const MACOS_PRIVACY = 'Réglages Système > Confidentialité et sécurité > Micro > Google Chrome'
 
-export function micErrorText(error: unknown): string {
-  const name = error instanceof DOMException ? error.name : ''
+/** Name of a getUserMedia failure. Read on any object: depending on the Chrome version,
+ *  `OverconstrainedError` is not a `DOMException`. */
+function failureName(error: unknown): string {
+  if (typeof error !== 'object' || error === null || !('name' in error)) return ''
+  return String(error.name)
+}
+
+/** @param microphone the microphone chosen by the adult [SPEC-6.8], null for Chrome's choice. */
+export function micErrorText(error: unknown, microphone: MicrophoneInfo | null = null): string {
+  const name = failureName(error)
   const detail = errorMessage(error)
+  // [SPEC-6.8] The chosen microphone is unplugged: Chrome rejects the `deviceId` constraint.
+  if (microphone !== null && (name === 'OverconstrainedError' || name === 'NotFoundError')) {
+    return `Le micro choisi « ${microphone.label} » est introuvable (débranché ?). Branchez-le, ou choisissez un autre micro dans les réglages de l'activité.\n${detail}`
+  }
   switch (name) {
     case 'NotAllowedError':
       // Chrome says "Permission denied by system" when macOS, not the site setting, refuses.

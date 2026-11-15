@@ -1,5 +1,6 @@
 // [SPEC-6.2] [SPEC-6.3] Pure level computation, shared by the diagnostic and the sound-level
 // service: RMS, dBFS, smoothing and calibration. No DOM, no Web Audio: tested with synthetic signals.
+import { ExplainedError } from '../errors'
 
 export const DBFS_FLOOR = -100
 
@@ -52,17 +53,19 @@ export const DEFAULT_AMBIENT_DBFS = -60
 /**
  * [SPEC-6.3] Ambient noise from the per-frame levels (dBFS) measured during the calibration.
  * The median is used, so that a short noise (a cough, a chair) does not raise it.
- * Throws a French message when the measure cannot be used.
+ * Throws an `ExplainedError` (French message, what to do) when the measure cannot be used [SPEC-6.6].
  */
 export function ambientFromReadings(readings: readonly number[]): number {
-  if (readings.length === 0) throw new Error('Aucune mesure reçue du micro pendant le calibrage.')
+  if (readings.length === 0) throw new ExplainedError('Aucune mesure reçue du micro pendant le calibrage.')
   const sorted = [...readings].sort((a, b) => a - b)
   const middle = Math.floor(sorted.length / 2)
   const median =
     sorted.length % 2 === 1 ? (sorted[middle] ?? DBFS_FLOOR) : ((sorted[middle - 1] ?? DBFS_FLOOR) + (sorted[middle] ?? DBFS_FLOOR)) / 2
   if (median <= DBFS_FLOOR + 1) {
-    throw new Error(
-      "Le micro ne capte aucun son (niveau au plancher). Vérifiez qu'il n'est pas coupé dans Réglages Système > Son > Entrée, puis recalibrez.",
+    // Chrome may listen to a virtual device (Hue Sync Audio, BlackHole…) that sends exact silence.
+    // [SPEC-6.8] Shown in the settings panel, which has the microphone menu.
+    throw new ExplainedError(
+      "Le micro ne capte aucun son (niveau au plancher). Choisissez un autre micro dans le menu « Micro » de ce panneau, ou vérifiez Réglages Système > Son > Entrée, puis recalibrez.",
     )
   }
   return median
@@ -91,5 +94,5 @@ export function parseCalibration(stored: unknown): Calibration | undefined {
       return { ambientDb, date }
     }
   }
-  throw new Error('Calibrage enregistré illisible : le bruit ambiant par défaut est utilisé. Recalibrez depuis les réglages.')
+  throw new ExplainedError('Calibrage enregistré illisible : le bruit ambiant par défaut est utilisé. Recalibrez depuis les réglages.')
 }

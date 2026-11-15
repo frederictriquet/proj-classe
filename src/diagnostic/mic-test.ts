@@ -1,8 +1,10 @@
 // [SPEC-6.1] [SPEC-10 V1] [SPEC-10 V6] Microphone check: permission state, live level and
-// the audio processing actually applied by Chrome.
+// the audio processing actually applied by Chrome. [SPEC-6.8] It opens the microphone chosen in
+// the settings, and [SPEC-7.5] gives the difference to the calibrated ambient noise.
 import { computeRms, rmsToDbfs } from '../audio/level'
 import { micErrorText } from '../audio/mic-errors'
-import { processingReport, RAW_AUDIO_CONSTRAINTS } from '../audio/processing'
+import type { MicrophoneInfo } from '../audio/microphone-choice'
+import { processingReport, rawAudioConstraints } from '../audio/processing'
 import { errorMessage } from '../errors'
 import type { Row } from './rows'
 
@@ -44,7 +46,15 @@ export class MicTest {
   private history: { t: number; db: number }[] = []
   readonly button: HTMLButtonElement
 
-  constructor(private readonly rows: MicRows) {
+  /**
+   * @param microphone the microphone chosen in the settings, null for Chrome's choice [SPEC-6.8].
+   * @param ambientDb the ambient noise in use, in dBFS [SPEC-6.3].
+   */
+  constructor(
+    private readonly rows: MicRows,
+    private readonly microphone: MicrophoneInfo | null,
+    private readonly ambientDb: number,
+  ) {
     rows.level.set('pas encore essayé')
     rows.processing.set('pas encore essayé')
     rows.device.set('pas encore essayé')
@@ -55,9 +65,9 @@ export class MicTest {
     this.button.disabled = true
     try {
       // [SPEC-6.1] Raw signal: automatic gain would distort the measure.
-      this.stream = await navigator.mediaDevices.getUserMedia({ audio: RAW_AUDIO_CONSTRAINTS, video: false })
+      this.stream = await navigator.mediaDevices.getUserMedia({ audio: rawAudioConstraints(this.microphone), video: false })
     } catch (error) {
-      this.rows.level.set(micErrorText(error), 'error')
+      this.rows.level.set(micErrorText(error, this.microphone), 'error')
       this.button.disabled = false
       return
     }
@@ -91,7 +101,7 @@ export class MicTest {
       const min = Math.min(...values)
       const max = Math.max(...values)
       this.rows.level.set(
-        `${db.toFixed(1)} dBFS\nsur les 3 dernières secondes : min ${min.toFixed(1)}, max ${max.toFixed(1)} (écart ${(max - min).toFixed(1)} dB)`,
+        `${db.toFixed(1)} dBFS, soit ${(db - this.ambientDb).toFixed(1)} dB au-dessus du bruit ambiant\nsur les 3 dernières secondes : min ${min.toFixed(1)}, max ${max.toFixed(1)} (écart ${(max - min).toFixed(1)} dB)`,
         'ok',
       )
       this.frame = requestAnimationFrame(tick)

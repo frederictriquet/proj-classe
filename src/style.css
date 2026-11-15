@@ -337,31 +337,84 @@ button:disabled {
   margin-top: 1.75rem;
 }
 
-/* [SPEC-7.5] Live sound level and calibration in the settings panel */
+/* [SPEC-7.5] Microphone, live level and its slider in the settings panel */
 .sound-section {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.75rem;
   margin-bottom: 1.5rem;
   padding-bottom: 1.25rem;
   border-bottom: 3px solid var(--ink);
   font-size: 1.1rem;
 }
 
-.sound-section h3 {
-  margin: 0;
-  font-size: 1.3rem;
-}
-
 .sound-section p {
   margin: 0;
+}
+
+.sound-microphone select {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  border: 3px solid var(--ink);
+  border-radius: 0.6rem;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+}
+
+.sound-level-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.2rem;
+}
+
+/* [SPEC-7.5] Zone of the level, in words. */
+.sound-zone {
+  padding: 0.2rem 0.75rem;
+  border: 2px solid currentColor;
+  border-radius: 1rem;
+  background: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.sound-zone[data-zone='off'] {
+  color: var(--ink);
+}
+
+.sound-zone[data-zone='calm'] {
+  color: var(--ok);
+}
+
+.sound-zone[data-zone='alert'] {
+  color: var(--warn);
+}
+
+.sound-zone[data-zone='noise'] {
+  color: var(--error);
+}
+
+/* [SPEC-7.5] The bar and the slider share one scale: the bar's inside spans exactly the course of
+   the thumb's centre, half a thumb in from each end of the slider. */
+.sound-gauge {
+  --thumb: 1.6rem;
+  --bar-border: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
 }
 
 .sound-bar {
   position: relative;
   height: 1.6rem;
-  border: 3px solid var(--ink);
-  border-radius: 0.8rem;
+  margin-inline: calc(var(--thumb) / 2 - var(--bar-border));
+  border: var(--bar-border) solid var(--ink);
+  border-radius: 0.5rem;
   overflow: hidden;
   background: #fff;
 }
@@ -372,17 +425,7 @@ button:disabled {
   background: var(--green-dark);
 }
 
-/* Ambient noise: a vertical line on the bar. */
-.sound-bar-ambient {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  margin-left: -2px;
-  background: var(--warn);
-}
-
-/* [SPEC-7.5] [SPEC-9.6] Thresholds of the app: one coloured line each, matched by the legend. */
+/* [SPEC-7.5] [SPEC-9.6] Thresholds of the app: one line each, the first one under the thumb. */
 .sound-bar-threshold {
   position: absolute;
   top: 0;
@@ -396,35 +439,40 @@ button:disabled {
   --mark: var(--error);
 }
 
-.sound-thresholds {
+.sound-gauge-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: var(--thumb);
   margin: 0;
-  padding: 0;
-  list-style: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.sound-gauge-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--ink);
+}
+
+.sound-gauge-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  box-sizing: border-box;
+  width: var(--thumb);
+  height: var(--thumb);
+  margin-top: calc(3px - var(--thumb) / 2);
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+  background: var(--green);
+}
+
+.sound-gauge-slider:focus-visible {
+  outline: 3px solid var(--green-dark);
+  outline-offset: 2px;
+}
+
+.sound-gauge-label {
   font-size: 1rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.sound-thresholds li::before {
-  content: '';
-  display: inline-block;
-  width: 4px;
-  height: 1em;
-  margin-right: 0.5rem;
-  vertical-align: -0.15em;
-  background: var(--mark, var(--ink));
-}
-
-.sound-values {
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-}
-
-.sound-help {
-  font-size: 1rem;
-}
-
-.sound-section > button {
-  align-self: flex-start;
 }
 
 .sound-error {
@@ -438,6 +486,33 @@ button:disabled {
   white-space: pre-line;
 }
 
+/* [SPEC-6.3] [SPEC-7.5] Calibration, at the bottom of the panel. */
+.sound-calibration {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 3px solid var(--ink);
+}
+
+.sound-calibration h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1.3rem;
+}
+
+.sound-calibration p {
+  margin: 0;
+}
+
+.sound-help {
+  font-size: 1rem;
+}
+
+.sound-microphone[hidden],
+.sound-zone[hidden],
 .sound-error[hidden],
 .sound-warning[hidden],
 .sound-simulation[hidden],

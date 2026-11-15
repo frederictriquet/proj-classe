@@ -3,6 +3,7 @@
 // [SPEC-5.2]; with two screens they are carried between windows by BroadcastChannel. Every
 // message is plain data (no function, no Error, no DOM node) so it survives structuredClone.
 import type { SettingValue, SettingValues } from '../apps/types'
+import type { MicrophoneInfo } from '../audio/microphone-choice'
 import type { SoundReading, SoundStatus } from '../audio/sound-service'
 
 export type HostCommand =
@@ -22,6 +23,8 @@ export type HostCommand =
   | { type: 'monitor-sound'; on: boolean }
   /** [SPEC-6.3] Measure the ambient noise for 3 seconds and keep it. */
   | { type: 'calibrate' }
+  /** [SPEC-6.8] Microphone to use from now on; null for the one Chrome picks. */
+  | { type: 'choose-microphone'; microphone: MicrophoneInfo | null }
   /** [SPEC-6.5] Level of the simulated source, in dBFS. Rejected with the real microphone. */
   | { type: 'simulate-level'; db: number }
 

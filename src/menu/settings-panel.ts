@@ -3,7 +3,7 @@
 // the app runs on the other screen.
 import type { AppManifest, SettingDeclaration, SettingValue } from '../apps/types'
 import type { HostLink } from '../host/protocol'
-import { soundSection } from './sound-section'
+import { gaugeSlider, soundSection } from './sound-section'
 
 const numberFormat = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 })
 
@@ -72,7 +72,7 @@ export function hasSettingsPanel(manifest: AppManifest): boolean {
 }
 
 interface PanelContent {
-  /** Live level (microphone apps) and the declared settings. */
+  /** Microphone and live level, the declared settings, then the calibration (microphone apps). */
   elements: HTMLElement[]
   /** Row of buttons, « Valeurs par défaut » first [SPEC-7.4]. */
   actions: HTMLElement
@@ -85,7 +85,10 @@ function panelContent(manifest: AppManifest, link: HostLink): PanelContent {
   const list = document.createElement('div')
   list.className = 'settings-list'
   const controls: Control[] = []
+  // [SPEC-7.5] The slider of the sound thresholds sits under the live level, not in the list.
+  const underLevel = manifest.needs.includes('microphone') ? gaugeSlider(manifest)?.id : undefined
   for (const declaration of manifest.settings) {
+    if (declaration.id === underLevel) continue
     const { row, control } =
       declaration.type === 'slider'
         ? sliderControl(manifest.id, declaration, link)
@@ -101,7 +104,7 @@ function panelContent(manifest: AppManifest, link: HostLink): PanelContent {
   reset.textContent = 'Valeurs par défaut'
   reset.addEventListener('click', () => link.dispatch({ type: 'reset-settings', appId: manifest.id }))
   actions.append(reset)
-  // [SPEC-7.5] Live level and « Calibrer » for an app that listens to the classroom.
+  // [SPEC-7.5] Microphone, live level and calibration for an app that listens to the classroom.
   const sound = manifest.needs.includes('microphone') ? soundSection(link, manifest) : undefined
 
   const unsubscribe = link.subscribe((state) => {
@@ -113,7 +116,8 @@ function panelContent(manifest: AppManifest, link: HostLink): PanelContent {
     }
   })
   return {
-    elements: [...(sound ? [sound.element] : []), list],
+    // [SPEC-7.5] The calibration comes last, after the other settings.
+    elements: sound ? [sound.top, list, sound.calibration] : [list],
     actions,
     dispose() {
       sound?.dispose()

@@ -43,8 +43,15 @@ export function manifestProblems(manifest: AppManifest): string[] {
     if (setting?.type !== 'slider')
       problems.push(`seuil « ${threshold.label} » : « ${threshold.setting} » n'est pas un curseur déclaré`)
   }
-  if ((manifest.soundThresholds ?? []).length > 0 && !manifest.needs.includes('microphone'))
+  const thresholds = manifest.soundThresholds ?? []
+  if (thresholds.length > 0 && !manifest.needs.includes('microphone'))
     problems.push('seuils sonores déclarés sans le besoin « microphone »')
+  // [SPEC-7.5] One slider under the level sets every threshold.
+  if (new Set(thresholds.map((t) => t.setting)).size > 1) problems.push('seuils sonores réglés par plusieurs curseurs')
+  const offsets = thresholds.map((t) => t.offsetDb ?? 0)
+  if (offsets.some((offset, i) => i > 0 && offset <= (offsets[i - 1] ?? 0))) problems.push('seuils sonores pas dans l’ordre croissant')
+  if (manifest.soundZones !== undefined && manifest.soundZones.length !== thresholds.length + 1)
+    problems.push(`${manifest.soundZones.length} zones sonores pour ${thresholds.length} seuils : il en faut une de plus que de seuils`)
   return problems
 }
 

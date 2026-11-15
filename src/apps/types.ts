@@ -36,9 +36,10 @@ export interface ToggleSetting {
 
 export type SettingDeclaration = SliderSetting | ToggleSetting
 
-/** [SPEC-7.5] [SPEC-9.6] A threshold of the app, marked on the live sound level of the settings
- *  panel. It lies `offsetDb` above the value of the slider `setting`, itself in dB above the
- *  ambient noise [SPEC-6.4]. */
+/** [SPEC-4.1] [SPEC-7.5] [SPEC-9.6] A threshold of the app, marked on the live sound level of the
+ *  settings panel. It lies `offsetDb` above the value of the slider `setting`, itself in dB above
+ *  the ambient noise [SPEC-6.4]. All the thresholds of an app name the same slider: the panel
+ *  shows it under the level, on the same scale. */
 export interface SoundThreshold {
   /** Name shown to the adult next to the mark, in French. */
   label: string
@@ -61,8 +62,14 @@ export interface AppManifest {
   thumbnail: string
   needs: readonly AppNeed[]
   settings: readonly SettingDeclaration[]
-  /** [SPEC-7.5] Thresholds marked on the live sound level; for an app with the `microphone` need. */
+  /** [SPEC-7.5] Thresholds marked on the live sound level, in increasing order; for an app with
+   *  the `microphone` need. */
   soundThresholds?: readonly SoundThreshold[]
+  /** [SPEC-4.1] [SPEC-7.5] What the app does in each zone of the level, shown to the adult in
+   *  French: below the first threshold, between two thresholds, above the last one. One more
+   *  than the thresholds. A level on a threshold belongs to the zone below it, except on the
+   *  first one, which already belongs to the zone above (as `zoneOf` in the forest's logic). */
+  soundZones?: readonly string[]
   /** Listed on the menu only in development builds (`npm run dev`). */
   devOnly?: boolean
 }

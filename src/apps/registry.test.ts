@@ -67,6 +67,23 @@ describe('buildRegistry', () => {
     const noMic = manifest('a', { settings: [slider], soundThresholds: [{ label: 'A', setting: 's' }] })
     expect(manifestProblems(noMic)).toEqual(['seuils sonores déclarés sans le besoin « microphone »'])
   })
+
+  it('wants one slider for every threshold, in increasing order, and one zone more than thresholds [SPEC-7.5]', () => {
+    const s = { type: 'slider', id: 's', label: 'S', min: 0, max: 10, step: 1, default: 5 } as const
+    const t = { ...s, id: 't', label: 'T' }
+    const two = [
+      { label: 'A', setting: 's' },
+      { label: 'B', setting: 's', offsetDb: 6 },
+    ]
+    const good = manifest('a', { needs: ['microphone'], settings: [s], soundThresholds: two, soundZones: ['calme', 'alerte', 'bruit'] })
+    expect(manifestProblems(good)).toEqual([])
+    const twoSliders = manifest('a', { needs: ['microphone'], settings: [s, t], soundThresholds: [two[0]!, { label: 'B', setting: 't', offsetDb: 6 }] })
+    expect(manifestProblems(twoSliders)).toEqual(['seuils sonores réglés par plusieurs curseurs'])
+    const reversed = manifest('a', { needs: ['microphone'], settings: [s], soundThresholds: [two[1]!, two[0]!] })
+    expect(manifestProblems(reversed)).toEqual(['seuils sonores pas dans l’ordre croissant'])
+    const zones = manifest('a', { needs: ['microphone'], settings: [s], soundThresholds: two, soundZones: ['calme', 'bruit'] })
+    expect(manifestProblems(zones)).toEqual(['2 zones sonores pour 2 seuils : il en faut une de plus que de seuils'])
+  })
 })
 
 describe('APP_REGISTRY', () => {

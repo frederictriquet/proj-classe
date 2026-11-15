@@ -40,7 +40,7 @@ SPEC-3.9 Version défectueuse et retour arrière
 
 ## SPEC-4 Contrat de sous-application et menu
 
-- 4.1 Une sous-application est un dossier `src/apps/<id>/` qui exporte une fiche et une fabrique. Fiche : `id`, `title`, vignette, `needs` (par exemple `['microphone']`), `settings` (liste déclarative de réglages : identifiant, libellé, type curseur ou interrupteur, bornes, valeur par défaut).
+- 4.1 Une sous-application est un dossier `src/apps/<id>/` qui exporte une fiche et une fabrique. Fiche : `id`, `title`, vignette, `needs` (par exemple `['microphone']`), `settings` (liste déclarative de réglages : identifiant, libellé, type curseur ou interrupteur, bornes, valeur par défaut). Une sous-application qui écoute le micro peut déclarer ses seuils sonores, tous réglés par un même curseur en dB au-dessus du bruit ambiant, et le nom de chaque zone qu'ils délimitent (SPEC-7.5).
 - 4.2 Cycle de vie : `start(context)` reçoit le conteneur d'affichage et les services (niveau sonore, réglages) ; `stop()` libère tout (boucle d'animation, écouteurs, micro, textures). Après `stop()`, rien ne tourne.
 - 4.3 Les sous-applications sont chargées à la demande (`import()` dynamique). Le registre des fiches est la seule liste à compléter pour en ajouter une.
 - 4.4 Une sous-application ne dessine aucun contrôle pour l'adulte : elle déclare ses réglages, l'hôte les affiche (SPEC-7).
@@ -65,16 +65,17 @@ SPEC-3.9 Version défectueuse et retour arrière
 - 6.3 Calibrage : mesure du bruit ambiant de la salle pendant 3 secondes, déclenchée par l'adulte. La valeur est conservée (SPEC-7). Sans calibrage, une valeur par défaut est utilisée.
 - 6.4 Le service expose le niveau lissé et l'écart au bruit ambiant calibré, en dB. Les seuils appartiennent aux sous-applications.
 - 6.5 Source simulée pour le développement et les tests : niveau piloté au clavier ou par un curseur, activée par un paramètre d'URL, même interface que la source micro.
-- 6.6 Erreurs affichées dans l'interface, en français, avec la marche à suivre : autorisation refusée, aucun micro, micro perdu en cours de route.
+- 6.6 Erreurs affichées dans l'interface, en français, avec la marche à suivre : autorisation refusée, aucun micro, micro choisi introuvable, micro perdu en cours de route, micro qui ne renvoie que du silence.
 - 6.7 Le flux audio n'est ni enregistré ni transmis. Le micro est relâché à l'arrêt de la sous-application.
+- 6.8 Choix du micro : le panneau propose « Micro choisi par Chrome » (aucune contrainte, valeur par défaut) puis les micros branchés, sans les entrées « default » et « communications » de Chrome. Le choix est conservé dans l'espace commun (SPEC-7.1) et s'applique aussitôt : un micro ouvert est rouvert avec le nouveau choix. Changer de micro efface le calibrage, propre à chaque micro. Raison : Chrome peut ouvrir un micro virtuel muet (Hue Sync Audio, constaté le 2026-11-15) alors que macOS a un autre micro par défaut.
 
 ## SPEC-7 Réglages
 
-- 7.1 Réglages conservés dans `localStorage`, rangés par sous-application, avec un espace commun (calibrage).
+- 7.1 Réglages conservés dans `localStorage`, rangés par sous-application, avec un espace commun (calibrage, micro choisi).
 - 7.2 L'hôte construit le panneau de réglages à partir de la déclaration de la fiche (SPEC-4.1). Un changement s'applique immédiatement à la sous-application en cours.
 - 7.3 En mode un écran, le panneau est accessible depuis le menu. En mode deux écrans, il reste affiché sur la régie pendant que la scène tourne.
 - 7.4 Un bouton « Valeurs par défaut » par sous-application.
-- 7.5 Pour une sous-application qui déclare le besoin `microphone`, le panneau affiche en plus le niveau sonore en direct et le bouton « Calibrer ».
+- 7.5 Pour une sous-application qui déclare le besoin `microphone`, le panneau affiche en plus, de haut en bas : le choix du micro (SPEC-6.8) ; le niveau sonore en direct sur une barre graduée en écart au bruit ambiant, avec un trait par seuil déclaré (SPEC-4.1) ; le curseur des seuils, placé sous la barre, de même échelle qu'elle, son pouce sur le premier trait ; la zone du niveau, nommée par la sous-application ; les erreurs et avertissements du micro (SPEC-6.6). Viennent ensuite les autres réglages, puis en bas le calibrage : date du dernier calibrage et bouton « Calibrer ». Sans seuil déclaré, la barre va de 0 à 60 dB au-dessus du bruit ambiant, sans curseur ni zone. Aucune valeur en dB n'est affichée dans le panneau : le diagnostic les donne (niveau, bruit ambiant calibré, écart au bruit ambiant, seuils de chaque sous-application).
 
 ## SPEC-8 Direction artistique
 
@@ -99,8 +100,8 @@ SPEC-3.9 Version défectueuse et retour arrière
 - 9.4.4 Après une fuite, la jauge repart de zéro et ne remonte qu'après 2 secondes de calme.
 - 9.4.5 La logique est un module pur (entrées : écart en dB et temps écoulé ; sorties : jauge et état de chaque animal), sans dépendance au rendu, couvert par des tests.
 - 9.5 Récompense : quand les six animaux sont installés, la clairière s'anime doucement (lucioles ou papillons, lumière plus chaude) tant que le calme dure. Aucune récompense sonore.
-- 9.6 Réglages déclarés, valeurs de départ à ajuster en classe : sensibilité (seuil d'alerte en dB au-dessus du bruit ambiant, défaut 6 ; seuil de fuite = seuil d'alerte + 6) ; durée pour que tous les animaux soient là (30 s à 5 min, défaut 90 s) ; tolérance d'alerte (0 à 2 s, défaut 0,5 s). Le panneau affiche les deux seuils sur le niveau sonore en direct (SPEC-7.5).
-- 9.7 Aucun indicateur de bruit n'est projeté : les animaux sont l'indicateur.
+- 9.6 Réglages déclarés, valeurs de départ à ajuster en classe : sensibilité (seuil d'alerte en dB au-dessus du bruit ambiant, de 2 à 80 dB pour que le curseur ne bloque jamais l'adulte, défaut 6 ; seuil de fuite = seuil d'alerte + 6) ; durée pour que tous les animaux soient là (30 s à 5 min, défaut 90 s) ; tolérance d'alerte (0 à 2 s, défaut 0,5 s). Le panneau affiche les deux seuils sur le niveau sonore en direct, le curseur de sensibilité sous la barre et la zone (SPEC-7.5) : « Calme : les animaux sortent », « Alerte : les animaux se figent, puis fuient si ça dure », « Trop de bruit : les animaux fuient ».
+- 9.7 Les animaux sont l'indicateur pour les enfants. Pour l'adulte, un mini-sonomètre est projeté en bas à gauche de la scène (décision du 2026-11-15) : barre verticale de 6 pixels de large et d'un quart de la hauteur de l'écran, qui montre en direct l'écart au bruit ambiant (SPEC-6.4) sur une échelle fixe allant de 6 dB sous le bruit ambiant à 90 dB au-dessus (au-delà du seuil de fuite le plus haut), avec un trait au seuil d'alerte et un trait au seuil de fuite (SPEC-9.6). Couleurs de la palette uniquement (SPEC-8.3.2). C'est un affichage, pas un contrôle (SPEC-4.4).
 
 ## SPEC-10 Points à vérifier sur le Mac de l'enseignante
 

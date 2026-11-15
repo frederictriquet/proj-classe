@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { ExplainedError } from '../errors'
 import {
   ambientFromReadings,
   computeRms,
@@ -148,8 +149,11 @@ describe('ambientFromReadings [SPEC-6.3]', () => {
   })
 
   it('refuses a measure stuck at the floor (microphone muted)', () => {
-    expect(() => ambientFromReadings(frames(0))).toThrow(/aucun son/)
+    expect(() => ambientFromReadings(frames(0))).toThrow(/aucun son.*menu « Micro »/s)
     expect(() => ambientFromReadings([])).toThrow(/Aucune mesure/)
+    // [SPEC-6.6] Explained errors: shown without the technical error name.
+    expect(() => ambientFromReadings(frames(0))).toThrow(ExplainedError)
+    expect(() => ambientFromReadings([])).toThrow(ExplainedError)
   })
 })
 
@@ -165,6 +169,7 @@ describe('parseCalibration [SPEC-6.3] [SPEC-7.1]', () => {
   it('rejects unreadable values with a French message', () => {
     for (const stored of [null, 'x', { ambientDb: 'loud', date: 'd' }, { ambientDb: 5, date: 'd' }, { ambientDb: -100, date: 'd' }, { ambientDb: -50 }]) {
       expect(() => parseCalibration(stored)).toThrow(/Recalibrez/)
+      expect(() => parseCalibration(stored)).toThrow(ExplainedError)
     }
   })
 })

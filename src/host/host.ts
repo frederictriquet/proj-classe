@@ -4,6 +4,7 @@
 // injected, which keeps this module free of DOM calls and testable.
 import type { AppEntry, AppRegistry } from '../apps/registry'
 import type { AppNeed, AppSettings, RunningApp, SettingDeclaration, SettingValues, SoundLevel } from '../apps/types'
+import type { MicrophoneInfo } from '../audio/microphone-choice'
 import type { SoundLease, SoundReading, SoundStatus } from '../audio/sound-service'
 import { errorMessage } from '../errors'
 import type { SettingsStore } from '../settings/settings'
@@ -34,6 +35,8 @@ export interface HostSound {
   acquire(onLost?: (message: string) => void): Promise<SoundLease>
   /** Never rejects: a failure goes to `status.error`. */
   calibrate(): Promise<void>
+  /** [SPEC-6.8] Reopens an open microphone; a failure goes to `status.error`. */
+  chooseMicrophone(microphone: MicrophoneInfo | null): void
   simulate(db: number): void
 }
 
@@ -114,9 +117,11 @@ interface Run {
   soundLease?: SoundLease
 }
 
-/** Microphone held for the settings panel's live level [SPEC-7.5]. */
+/** Microphone held for the settings panel's live level [SPEC-7.5]. Kept after a failure to
+ *  open: the panel still wants the microphone, and a new choice tries again [SPEC-6.8]. */
 interface Monitor {
   lease?: SoundLease
+  opening?: boolean
 }
 
 export class AppHost implements HostLink {
@@ -182,6 +187,11 @@ export class AppHost implements HostLink {
         break
       case 'calibrate':
         void this.options.sound.calibrate() // never rejects: a failure goes to state.sound.error
+        break
+      case 'choose-microphone':
+        this.options.sound.chooseMicrophone(command.microphone)
+        // [SPEC-6.8] The open panel whose microphone could not open tries the new choice.
+        if (this.monitor && !this.monitor.lease && !this.monitor.opening) this.acquireMonitor(this.monitor)
         break
       case 'simulate-level':
         this.options.sound.simulate(command.db)
@@ -296,14 +306,20 @@ export class AppHost implements HostLink {
     if (this.monitor) return
     const monitor: Monitor = {}
     this.monitor = monitor
+    this.acquireMonitor(monitor)
+  }
+
+  private acquireMonitor(monitor: Monitor): void {
+    monitor.opening = true
     this.options.sound.acquire().then(
       (lease) => {
+        monitor.opening = false
         if (this.monitor === monitor) monitor.lease = lease
         else lease.release() // the panel closed while the microphone was opening
       },
       () => {
         // The service already put the French message in state.sound.error, shown by the panel.
-        if (this.monitor === monitor) this.monitor = undefined
+        monitor.opening = false
       },
     )
   }

@@ -3,8 +3,8 @@
 //
 // [SPEC-9.6] The three settings, applied at once [SPEC-7.2]. Kept free of the calm logic so the
 // menu stays light: manifest.test.ts checks that the defaults are DEFAULT_CALM_SETTINGS and the
-// flight mark is `fleeThresholdDb` (calm.ts). The bounds of the sensitivity are not in the spec:
-// 2 to 20 dB, to be adjusted in class like the defaults.
+// flight mark is `fleeThresholdDb` (calm.ts). The sensitivity goes up to 80 dB so the slider never
+// stops the adult from tolerating more noise: high values are out of the microphone's reach.
 import type { AppManifest } from '../types'
 import thumbnail from './thumbnail.svg'
 
@@ -27,9 +27,10 @@ export const manifest: AppManifest = {
     {
       type: 'slider',
       id: SETTING.alertDb,
-      label: "Sensibilité : seuil d'alerte au-dessus du bruit ambiant (plus bas, plus sensible)",
+      // [SPEC-7.5] Shown under the live level, whose first mark is this slider's value.
+      label: 'Sensibilité : les animaux sortent tant que le niveau reste à gauche du premier trait, et fuient au-delà du second',
       min: 2,
-      max: 20,
+      max: 80,
       step: 1,
       default: 6,
       unit: 'dB',
@@ -61,4 +62,6 @@ export const manifest: AppManifest = {
     { label: 'Alerte', setting: SETTING.alertDb },
     { label: 'Fuite', setting: SETTING.alertDb, offsetDb: 6 },
   ],
+  // [SPEC-9.4] [SPEC-9.6] The zones of the calm logic, in words for the adult.
+  soundZones: ['Calme : les animaux sortent', 'Alerte : les animaux se figent, puis fuient si ça dure', 'Trop de bruit : les animaux fuient'],
 }

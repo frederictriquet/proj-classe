@@ -6,7 +6,13 @@ import { errorMessage } from '../errors'
 import { getSwRegistrationState, onSwRegistrationChange } from '../boot/register'
 import { requestPersistentStorage } from '../pwa/storage'
 import { VERSION_LABEL } from '../version'
+import { APP_REGISTRY } from '../apps/registry'
+import { DEFAULT_AMBIENT_DBFS, parseCalibration, type Calibration } from '../audio/level'
+import { MICROPHONE_KEY, parseMicrophoneChoice, type MicrophoneInfo } from '../audio/microphone-choice'
+import { CALIBRATION_KEY } from '../audio/sound-service'
+import { SettingsStore } from '../settings/settings'
 import { MicTest, watchMicPermission } from './mic-test'
+import { ambientText, appThresholdsText, microphoneChoiceText } from './sound-report'
 import { DiagnosticReport, type Row } from './rows'
 import { ScreensTest } from './screens-test'
 import { formatFps, startTestAnimation, type TestAnimation } from './test-animation'
@@ -54,12 +60,18 @@ export function renderDiagnostic(root: HTMLElement): Dispose {
   const mic = report.section('Micro')
   const micPermission = mic('Autorisation micro')
   void watchMicPermission(micPermission)
-  const micTest = new MicTest({
-    permission: micPermission,
-    level: mic('Niveau sonore'),
-    processing: mic('Traitements audio (getSettings)'),
-    device: mic('Micro utilisé'),
-  })
+  // [SPEC-6.8] [SPEC-7.5] Settings that the panel shows without their values in dB.
+  const { microphone, ambientDb } = showSoundSettings(mic('Micro choisi'), mic('Bruit ambiant'), mic('Seuils des activités'))
+  const micTest = new MicTest(
+    {
+      permission: micPermission,
+      level: mic('Niveau sonore'),
+      processing: mic('Traitements audio (getSettings)'),
+      device: mic('Micro utilisé'),
+    },
+    microphone,
+    ambientDb,
+  )
   disposers.push(() => micTest.stop())
 
   // Screens [SPEC-5.3] [SPEC-10 V4]
@@ -95,6 +107,40 @@ export function renderDiagnostic(root: HTMLElement): Dispose {
     for (const dispose of disposers) dispose()
     page.remove()
   }
+}
+
+/** [SPEC-6.8] [SPEC-7.5] Chosen microphone, calibrated ambient noise and thresholds of the
+ *  microphone apps, as stored. Returns what the microphone test needs. */
+function showSoundSettings(
+  microphoneRow: Row,
+  ambientRow: Row,
+  thresholdsRow: Row,
+): { microphone: MicrophoneInfo | null; ambientDb: number } {
+  const problems: string[] = []
+  const settings = new SettingsStore(localStorage, (message) => problems.push(message))
+
+  let microphone: MicrophoneInfo | null = null
+  try {
+    microphone = parseMicrophoneChoice(settings.readCommon(MICROPHONE_KEY))
+    microphoneRow.set(microphoneChoiceText(microphone))
+  } catch (error) {
+    microphoneRow.set(errorMessage(error), 'error')
+  }
+
+  let calibration: Calibration | undefined
+  try {
+    calibration = parseCalibration(settings.readCommon(CALIBRATION_KEY))
+    ambientRow.set(ambientText(calibration), calibration ? 'ok' : 'warn')
+  } catch (error) {
+    ambientRow.set(errorMessage(error), 'error')
+  }
+  const ambientDb = calibration?.ambientDb ?? DEFAULT_AMBIENT_DBFS
+
+  const texts = APP_REGISTRY.entries
+    .filter(({ manifest }) => (manifest.soundThresholds ?? []).length > 0)
+    .map(({ manifest }) => appThresholdsText(manifest, settings.read(manifest.id, manifest.settings), ambientDb))
+  thresholdsRow.set([...texts, ...problems].join('\n') || 'aucune activité ne déclare de seuil', problems.length > 0 ? 'warn' : 'neutral')
+  return { microphone, ambientDb }
 }
 
 function showBrowser(row: Row): void {

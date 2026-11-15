@@ -4,7 +4,8 @@
 import { ExplainedError } from '../errors'
 import { computeRms, rmsToDbfs } from './level'
 import { MIC_LOST_TEXT, micErrorText, NO_MIC_API_TEXT } from './mic-errors'
-import { processingWarning, RAW_AUDIO_CONSTRAINTS } from './processing'
+import { microphonesFrom, type MicrophoneInfo } from './microphone-choice'
+import { processingWarning, rawAudioConstraints } from './processing'
 import type { LevelSource, OpenedSource } from './source'
 
 /** 2048 samples: about 43 ms at 48 kHz, longer than a frame, so no sound falls between two reads. */
@@ -15,13 +16,13 @@ const RESUME_TIMEOUT_MS = 1000
 export class MicrophoneSource implements LevelSource {
   readonly simulated = false
 
-  async open(onLost: (message: string) => void): Promise<OpenedSource> {
+  async open(onLost: (message: string) => void, microphone: MicrophoneInfo | null): Promise<OpenedSource> {
     if (!navigator.mediaDevices?.getUserMedia) throw new ExplainedError(NO_MIC_API_TEXT)
     let stream: MediaStream
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: RAW_AUDIO_CONSTRAINTS, video: false })
+      stream = await navigator.mediaDevices.getUserMedia({ audio: rawAudioConstraints(microphone), video: false })
     } catch (error) {
-      throw new ExplainedError(micErrorText(error), { cause: error })
+      throw new ExplainedError(micErrorText(error, microphone), { cause: error })
     }
     const stopTracks = () => {
       for (const track of stream.getTracks()) track.stop()
@@ -74,8 +75,19 @@ export class MicrophoneSource implements LevelSource {
         return rmsToDbfs(computeRms(samples))
       },
       warning: processingWarning(track.getSettings()),
+      device: track.label || undefined,
       // [SPEC-6.7] Stopping every track turns Chrome's microphone indicator off.
       close: closeAll,
     }
+  }
+
+  async listMicrophones(): Promise<MicrophoneInfo[]> {
+    if (!navigator.mediaDevices?.enumerateDevices) return []
+    return microphonesFrom(await navigator.mediaDevices.enumerateDevices())
+  }
+
+  watchMicrophones(listener: () => void): void {
+    // Kept for the life of the window, like the service that asks for it.
+    navigator.mediaDevices?.addEventListener('devicechange', listener)
   }
 }

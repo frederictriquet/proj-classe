@@ -16,6 +16,9 @@ export function hostState(partial: Partial<HostState> = {}): HostState {
       calibrating: false,
       error: null,
       warning: null,
+      device: null,
+      microphone: null,
+      microphones: [],
     },
     ...partial,
   }

@@ -1,8 +1,8 @@
 // [SPEC-4.2] [SPEC-9] « Forêt du silence »: the clearing, its six animals and the reward, driven
 // by the sound level. Every frame the difference to the ambient noise [SPEC-6.4] feeds the calm
 // logic [SPEC-9.4], whose targets set what each animal does [SPEC-9.3]. No sound is played
-// [SPEC-9.1], nothing for the adult is drawn [SPEC-4.4] and no noise indicator is shown: the
-// animals are the indicator [SPEC-9.7].
+// [SPEC-9.1] and no control for the adult is drawn [SPEC-4.4]. The animals are the children's
+// indicator; the adult reads a mini sound meter at the bottom left [SPEC-9.7].
 import { Application } from 'pixi.js'
 import { PALETTE } from '../../art/palette'
 import type { AppContext, RunningApp } from '../types'
@@ -12,6 +12,7 @@ import { createAnimal } from './animals'
 import { CalmLogic, type CalmOutput, type CalmSettings } from './calm'
 import { createClearing } from './clearing'
 import { SETTING } from './manifest'
+import { createMeter } from './meter-art'
 import { rewardActive } from './reward'
 import { createReward } from './reward-art'
 
@@ -40,6 +41,9 @@ export async function start(context: AppContext): Promise<RunningApp> {
   app.stage.addChild(clearing.root)
   const animals = ANIMAL_IDS.map((id, i) => createAnimal(id, clearing, i + 1))
   const reward = createReward(clearing)
+  // [SPEC-9.7] On the stage, in screen pixels, over the scaled clearing.
+  const meter = createMeter()
+  app.stage.addChild(meter.root)
   const logic = new CalmLogic()
 
   // [SPEC-9.6] [SPEC-7.2] Read again at every change, used from the next frame on.
@@ -65,9 +69,12 @@ export async function start(context: AppContext): Promise<RunningApp> {
       width = app.screen.width
       height = app.screen.height
       clearing.resize(width, height)
+      meter.resize(width, height)
     }
     const dt = frameStep(ticker.deltaMS)
-    output = logic.step(context.sound.aboveAmbientDb, dt, settings)
+    const aboveAmbientDb = context.sound.aboveAmbientDb
+    output = logic.step(aboveAmbientDb, dt, settings)
+    meter.update(aboveAmbientDb, settings.alertDb)
     for (const animal of animals) {
       animal.setTarget(output.targets[animal.id])
       animal.update(dt)

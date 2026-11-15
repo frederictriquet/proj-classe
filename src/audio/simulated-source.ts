@@ -1,6 +1,7 @@
 // [SPEC-6.5] Simulated source for development and tests: no microphone, the level is set with
 // the keyboard or a slider of the settings panel. Enabled by `?micro=simule` in the address.
 import { DBFS_FLOOR, DEFAULT_AMBIENT_DBFS } from './level'
+import type { MicrophoneInfo } from './microphone-choice'
 import type { LevelSource, OpenedSource } from './source'
 
 /** Query parameter that turns the simulated source on: `?micro=simule`. */
@@ -34,6 +35,13 @@ export class SimulatedSource implements LevelSource {
   open(): Promise<OpenedSource> {
     return Promise.resolve({ read: () => this.db, close() {} })
   }
+
+  /** [SPEC-6.8] No microphone to choose: the panel hides the menu for the simulated source. */
+  listMicrophones(): Promise<MicrophoneInfo[]> {
+    return Promise.resolve([])
+  }
+
+  watchMicrophones(): void {}
 }
 
 /** [SPEC-6.5] Keyboard control of the simulated level, active in the whole window (menu and

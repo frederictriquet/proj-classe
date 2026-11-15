@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { buildRegistry } from '../apps/registry'
 import type { AppContext, AppManifest, AppModule, RunningApp } from '../apps/types'
 import { SettingsStore, type KeyValueStorage } from '../settings/settings'
+import type { MicrophoneInfo } from '../audio/microphone-choice'
 import type { SoundLease, SoundReading, SoundStatus } from '../audio/sound-service'
 import { ExplainedError } from '../errors'
 import { AppHost, type HostDisplay, type HostSound, type OpenedDisplay } from './host'
@@ -61,6 +62,9 @@ class FakeSound implements HostSound {
     calibrating: false,
     error: null,
     warning: null,
+    device: null,
+    microphone: null,
+    microphones: [],
   }
   readonly level = { levelDb: -50, ambientDb: -60, aboveAmbientDb: 10 }
   held = 0
@@ -73,6 +77,7 @@ class FakeSound implements HostSound {
   private statusListeners = new Set<(status: SoundStatus) => void>()
   calibrations = 0
   simulated: number[] = []
+  chosen: (MicrophoneInfo | null)[] = []
 
   subscribeStatus(listener: (status: SoundStatus) => void) {
     this.statusListeners.add(listener)
@@ -118,6 +123,9 @@ class FakeSound implements HostSound {
   }
   simulate(db: number) {
     this.simulated.push(db)
+  }
+  chooseMicrophone(microphone: MicrophoneInfo | null) {
+    this.chosen.push(microphone)
   }
 }
 
@@ -344,12 +352,36 @@ describe('AppHost', () => {
     expect(sound.held).toBe(0)
   })
 
-  it('forwards calibration, simulated level and sound status [SPEC-6.3] [SPEC-6.5]', () => {
+  it('opens the panel\'s microphone again when another one is chosen after a failure [SPEC-6.8]', async () => {
+    const { host, sound } = setup()
+    sound.failWith = new ExplainedError('Le micro choisi « Micro USB » est introuvable.')
+    host.dispatch({ type: 'monitor-sound', on: true })
+    await settle()
+    expect(sound.held).toBe(0)
+    sound.failWith = undefined
+    host.dispatch({ type: 'choose-microphone', microphone: null })
+    await settle()
+    expect(sound.held).toBe(1)
+    host.dispatch({ type: 'choose-microphone', microphone: null }) // already held: no second lease
+    await settle()
+    expect(sound.held).toBe(1)
+    host.dispatch({ type: 'monitor-sound', on: false })
+    expect(sound.held).toBe(0)
+    host.dispatch({ type: 'choose-microphone', microphone: null }) // panel closed: nothing opened
+    await settle()
+    expect(sound.held).toBe(0)
+  })
+
+  it('forwards calibration, simulated level, microphone choice and sound status [SPEC-6.3] [SPEC-6.5] [SPEC-6.8]', () => {
     const { host, sound } = setup()
     host.dispatch({ type: 'calibrate' })
     expect(sound.calibrations).toBe(1)
     host.dispatch({ type: 'simulate-level', db: -42 })
     expect(sound.simulated).toEqual([-42])
+    // [SPEC-6.8]
+    host.dispatch({ type: 'choose-microphone', microphone: { id: 'mic-2', label: 'Micro USB' } })
+    host.dispatch({ type: 'choose-microphone', microphone: null })
+    expect(sound.chosen).toEqual([{ id: 'mic-2', label: 'Micro USB' }, null])
     sound.setStatus({ calibrating: true })
     expect(host.state.sound.calibrating).toBe(true)
   })
@@ -493,6 +525,7 @@ describe('AppHost', () => {
       { type: 'monitor-sound', on: true },
       { type: 'calibrate' },
       { type: 'simulate-level', db: -40 },
+      { type: 'choose-microphone', microphone: { id: 'mic-2', label: 'Micro USB' } },
     ]
     for (const command of commands) expect(structuredClone(command)).toEqual(command)
 
