@@ -11,7 +11,7 @@ const colors = Object.values(PALETTE)
 const known = new Set(colors.map((c) => c.toUpperCase()))
 
 /** Folders whose drawings must use the hive palette only [SPEC-8.3]. */
-const DRAWING_FOLDERS = ['.']
+const DRAWING_FOLDERS = ['.', '../ruche-galerie']
 
 /** [SPEC-8.2] Smallest lightness ratio between two colours that touch, as for the farm. */
 const MIN_RATIO = 1.7

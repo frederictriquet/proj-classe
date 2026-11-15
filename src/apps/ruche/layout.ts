@@ -56,15 +56,16 @@ export const HIVE = {
 } as const
 
 /**
- * [SPEC-13.2.1] The flight hole as the bees see it. `peeks`: where a bee stands to show its head
- * and antennae in the hole, the rest of it hidden behind the board, slightly apart so that several
- * heads stay visible when the bees come out one after the other. `inside`: feet height of a bee
- * standing wholly in the hole, on its sill; the hole is taller than a bee, so a bee there can move
- * from the hive's slot to the actors layer without being cut.
+ * [SPEC-13.2.1] The flight hole as the bees see it. `peeks`: where a bee stands to show its head,
+ * eyes and antennae in the hole, the rest of it hidden behind the board, at either end of the hole
+ * so that two heads stay visible when the bees come out one after the other; far enough from
+ * `inside` for the bee's weave to swing once on the way (see `beeFlight` in animal-data.ts).
+ * `inside`: feet height of a bee standing wholly in the hole, on its sill; the hole is taller than a
+ * bee, so a bee there can move from the hive's slot to the actors layer without being cut.
  */
 export const FLIGHT_HOLE = {
   rect: HIVE.hole,
-  peeks: [165, 220, 275].map((x): Perch => ({ x, y: APIARY_FRONT_Y, height: APIARY_FRONT_Y - 676 })),
+  peeks: [160, 280].map((x): Perch => ({ x, y: APIARY_FRONT_Y, height: APIARY_FRONT_Y - 660 })),
   inside: { x: HIVE.hole.x + HIVE.hole.width / 2, y: APIARY_FRONT_Y, height: APIARY_FRONT_Y - 628 } satisfies Perch,
 } as const
 
