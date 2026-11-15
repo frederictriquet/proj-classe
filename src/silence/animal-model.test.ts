@@ -40,6 +40,18 @@ const FLYER: AnimalSpec = {
 const BUTTERFLY: AnimalSpec = { ...FLYER, id: 'butterfly', flight: { ...FLYER.flight!, restBeat: 1, restRate: 0.4 } }
 /** The same path without weaving: the height is the path's. */
 const STRAIGHT: AnimalSpec = { ...FLYER, id: 'straight', flight: { ...FLYER.flight!, weave: 0 } }
+/** [SPEC-13.2.2] Rises straight up from behind a tuft before flying off: a segment with no length
+ *  on the ground. */
+const RISER: AnimalSpec = {
+  ...FLYER,
+  id: 'riser',
+  path: [
+    { x: 600, y: 950, crouch: 0, height: 0 },
+    { x: 600, y: 950, crouch: 0, height: 60 },
+    { x: 600, y: 950, crouch: 0, height: 160 },
+    { x: 400, y: 900, crouch: 0, height: 120 },
+  ],
+}
 /** An animal that walks, on the ground. */
 const WALKER: AnimalSpec = {
   ...FLYER,
@@ -244,23 +256,25 @@ describe('continuity of a flight [SPEC-8.5]: any target at any time, no jump fro
     eyeOpen: 0.25,
     facing: (2 / TURN_TIME.flee) * DT + 1e-9,
     shadow: 0.35,
-    // Fleeing, the height changes by up to 18 units a frame.
-    shadowScale: 0.04,
     tail: 0.15,
     chew: 0.03,
     breath: 0.01,
     wingBeat: 0.07,
   }
 
-  it.each([FLYER, BUTTERFLY])('$id', (spec) => {
+  it.each([FLYER, BUTTERFLY, RISER])('$id', (spec) => {
     const model = new AnimalModel(spec, 3)
     const random = seededRandom(17)
-    // Fastest climb of the path per unit of ground, and fastest change of the weave per unit of
-    // ground: the drawing moves at most this much faster than the ground point.
-    const slope = 100 / Math.hypot(240, 100) + 290 / Math.hypot(300, 100)
+    // Lengths along the path are measured in space, height included: one unit of path moves the
+    // drawing at most √2 units on the screen (x, and y - height). The weave adds its own change
+    // per unit of path, and its fading when the flight starts.
+    const at = pathLengths(spec.path)
     const { weave, weaveLength } = spec.flight!
-    const weaveSlope = weave * (2 * Math.PI / weaveLength + Math.PI / (lengths.at(-1)! - lengths[1]!))
-    const maxStep = spec.speed.flee * DT * (1 + slope + weaveSlope) + weave * 0.2
+    const weaveSlope = weave * ((2 * Math.PI) / weaveLength + Math.PI / (at.at(-1)! - at[spec.peekIndex]!))
+    const maxStep = spec.speed.flee * DT * (Math.SQRT2 + weaveSlope) + weave * 0.2
+    // The shadow follows the height, which changes by at most `maxStep` a frame; it shrinks
+    // fastest near the ground: 1 / SHADOW_HALF_HEIGHT per unit of height.
+    const limits = { ...LIMITS, shadowScale: maxStep / SHADOW_HALF_HEIGHT }
     let previous = { ...model.pose }
     const seen = new Set<string>()
     let nextChange = 0
@@ -275,7 +289,7 @@ describe('continuity of a flight [SPEC-8.5]: any target at any time, no jump fro
       const pose = model.pose
       const moved = Math.hypot(pose.x - previous.x, pose.y - pose.height - (previous.y - previous.height))
       if (moved > maxStep) expect.fail(`moved ${moved.toFixed(2)} on screen at ${t.toFixed(2)} s (${before} > ${model.state})`)
-      for (const [key, limit] of Object.entries(LIMITS) as [keyof Pose, number][]) {
+      for (const [key, limit] of Object.entries(limits) as [keyof Pose, number][]) {
         const change = Math.abs(pose[key] - previous[key])
         if (change > limit) expect.fail(`${key} jumped by ${change.toFixed(3)} at ${t.toFixed(2)} s (${before} > ${model.state})`)
       }

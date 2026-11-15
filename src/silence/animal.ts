@@ -80,7 +80,8 @@ export interface AnimalSpec<Id extends string = string, Hideout extends string =
   /** Seen from the front whatever its direction (the forest's owl): it never turns. */
   frontal: boolean
   extent: Extent
-  /** World units per second. Fleeing is fast [SPEC-8.5]: under a second back to the hideout. */
+  /** World units per second along the path, in space for an animal that flies. Fleeing is fast
+   *  [SPEC-8.5]: under a second back to the hideout. */
   speed: { peek: number; walk: number; flee: number }
   /** Seconds spent peeking before coming out. */
   peekPause: number
@@ -99,20 +100,22 @@ export interface AnimalSpec<Id extends string = string, Hideout extends string =
   activities: Readonly<Record<Activity, number>>
 }
 
-/** Lengths along a path: `at[i]` is the distance from the hiding place to `path[i]`. */
+/** Lengths along a path: `at[i]` is the distance from the hiding place to `path[i]`. Measured in
+ *  space, height included [SPEC-13.2.3]: a flying animal that rises straight up still travels. */
 export function pathLengths(path: readonly Waypoint[]): number[] {
   const at = [0]
   for (let i = 1; i < path.length; i++) {
     const a = path[i - 1]!
     const b = path[i]!
-    at.push(at[i - 1]! + Math.hypot(b.x - a.x, b.y - a.y))
+    const dh = (b.height ?? 0) - (a.height ?? 0)
+    at.push(at[i - 1]! + (dh === 0 ? Math.hypot(b.x - a.x, b.y - a.y) : Math.hypot(b.x - a.x, b.y - a.y, dh)))
   }
   return at
 }
 
-/** Point of the path at distance `s` from the hiding place, with the crouch and the height there
- *  and the direction of the segment on the ground (unit vector, towards the place in the decor).
- *  Lengths are measured on the ground. */
+/** Point of the path at distance `s` from the hiding place (see `pathLengths`), with the crouch
+ *  and the height there and the direction of the segment on the ground (unit vector, towards the
+ *  place in the decor; zero for a segment that only rises or falls). */
 export function pointAt(path: readonly Waypoint[], lengths: readonly number[], s: number): Required<Waypoint> & { dx: number; dy: number } {
   const last = path.length - 1
   let i = 1
@@ -121,12 +124,13 @@ export function pointAt(path: readonly Waypoint[], lengths: readonly number[], s
   const b = path[i]!
   const length = lengths[i]! - lengths[i - 1]!
   const t = length > 0 ? Math.min(1, Math.max(0, (s - lengths[i - 1]!) / length)) : 0
+  const ground = (a.height ?? 0) === (b.height ?? 0) ? length : Math.hypot(b.x - a.x, b.y - a.y)
   return {
     x: a.x + (b.x - a.x) * t,
     y: a.y + (b.y - a.y) * t,
     crouch: a.crouch + (b.crouch - a.crouch) * t,
     height: (a.height ?? 0) + ((b.height ?? 0) - (a.height ?? 0)) * t,
-    dx: length > 0 ? (b.x - a.x) / length : 0,
-    dy: length > 0 ? (b.y - a.y) / length : 0,
+    dx: ground > 0 ? (b.x - a.x) / ground : 0,
+    dy: ground > 0 ? (b.y - a.y) / ground : 0,
   }
 }
