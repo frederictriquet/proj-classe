@@ -39,18 +39,12 @@ export type RucheAnimalSpec = AnimalSpec<AnimalId, HideoutId>
 export const isBee = (id: AnimalId): id is BeeId => id.startsWith('bee')
 
 /**
- * [SPEC-13.2.4] [SPEC-8.5] The two ways the bees can beat their wings, to be chosen in the gallery:
- * `ample`, slow and wide, opaque cream wings; `vibrent`, translucent wings that barely quiver.
- * `rate` is in beats per second (at most `MAX_WING_RATE`), `folded`, `down` and `up` are the
- * rotations of a wing about its root, radians (0: standing up on the back, leaning backwards;
- * negative: lowered along the body), `alpha` the opacity of the wings.
+ * [SPEC-13.2.4] [SPEC-8.5] How the bees beat their wings, chosen in the gallery: slow and wide,
+ * opaque cream wings. `rate` is in beats per second (at most `MAX_WING_RATE`), `folded`, `down` and
+ * `up` are the rotations of a wing about its root, radians (0: standing up on the back, leaning
+ * backwards; negative: lowered along the body).
  */
-export const BEE_WINGS = {
-  ample: { rate: 2.5, folded: -0.3, down: -0.55, up: 0.3, alpha: 1 },
-  vibrent: { rate: 3, folded: -0.3, down: -0.12, up: 0.06, alpha: 0.55 },
-} as const
-export type BeeWingStyle = keyof typeof BEE_WINGS
-export const DEFAULT_BEE_WINGS: BeeWingStyle = 'ample'
+export const BEE_WINGS = { rate: 2.5, folded: -0.3, down: -0.55, up: 0.3 } as const
 
 /** [SPEC-13.2.1] Height of a bee, world units: about 80 of the 1080 of the safe zone. */
 export const BEE_EXTENT = EXTENT_BUDGET.bee
@@ -140,10 +134,10 @@ export function butterflyPath(place: Place): Waypoint[] {
  * zero again at the exit: the bee is then wholly inside the flight hole, and changing layer there
  * shows no jump.
  */
-function beeFlight(style: BeeWingStyle, rank: number, path: readonly Waypoint[]): Flight {
+function beeFlight(rank: number, path: readonly Waypoint[]): Flight {
   const lengths = pathLengths(path)
   return {
-    wingRate: BEE_WINGS[style].rate,
+    wingRate: BEE_WINGS.rate,
     weave: 18 + 4 * (rank % 3),
     weaveLength: 2 * (lengths[BEE_EXIT]! - lengths[BEE_PEEK]!),
     restBeat: 0,
@@ -153,7 +147,7 @@ function beeFlight(style: BeeWingStyle, rank: number, path: readonly Waypoint[])
 
 /** [SPEC-13.2.1] The bee that comes out `rank`-th (from 0). All bees share one drawing; their small
  *  activities differ by the seed the shared code gives them. */
-function bee(id: BeeId, rank: number, style: BeeWingStyle): RucheAnimalSpec {
+function bee(id: BeeId, rank: number): RucheAnimalSpec {
   const place = BEE_PLACES[rank]!
   const path = beePath(place, rank)
   return {
@@ -171,7 +165,7 @@ function bee(id: BeeId, rank: number, style: BeeWingStyle): RucheAnimalSpec {
     speed: { peek: 45, walk: 130, flee: 2000 },
     peekPause: 0.9 + 0.15 * (rank % 4),
     gait: 'fly',
-    flight: beeFlight(style, rank, path),
+    flight: beeFlight(rank, path),
     strideLength: 40,
     bounce: 3,
     sleepCrouch: 0.6,
@@ -206,12 +200,8 @@ function butterfly(id: ButterflyId, rank: number): RucheAnimalSpec {
   }
 }
 
-/** [SPEC-13.2] Every animal of the hive, with the bees' wings beating the `style` way. */
-export function rucheAnimals(style: BeeWingStyle = DEFAULT_BEE_WINGS): Readonly<Record<AnimalId, RucheAnimalSpec>> {
-  return Object.fromEntries([
-    ...BEE_IDS.map((id, rank) => [id, bee(id, rank, style)] as const),
-    ...BUTTERFLY_IDS.map((id, rank) => [id, butterfly(id, rank)] as const),
-  ]) as Record<AnimalId, RucheAnimalSpec>
-}
-
-export const ANIMALS = rucheAnimals()
+/** [SPEC-13.2] Every animal of the hive. */
+export const ANIMALS = Object.fromEntries([
+  ...BEE_IDS.map((id, rank) => [id, bee(id, rank)] as const),
+  ...BUTTERFLY_IDS.map((id, rank) => [id, butterfly(id, rank)] as const),
+]) as Readonly<Record<AnimalId, RucheAnimalSpec>>

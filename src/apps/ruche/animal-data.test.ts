@@ -3,21 +3,10 @@ import { MAX_WING_RATE } from '../../silence/animal'
 import { AnimalModel } from '../../silence/animal-model'
 import { contains, intersects, SAFE_ZONE } from '../../silence/geometry'
 import { depthCrossings, drawingBox, restingPoints } from '../../silence/overlap'
-import {
-  ANIMAL_IDS,
-  ANIMALS,
-  BEE_IDS,
-  BEE_WINGS,
-  BUTTERFLY_EXTENT,
-  BUTTERFLY_IDS,
-  isBee,
-  rucheAnimals,
-  type BeeWingStyle,
-} from './animal-data'
+import { ANIMAL_IDS, ANIMALS, BEE_IDS, BUTTERFLY_EXTENT, BUTTERFLY_IDS, isBee } from './animal-data'
 import { EXTENT_BUDGET, FLIGHT_HOLE, HIDEOUTS, PLACES } from './layout'
 
 const DT = 1 / 60
-const STYLES = Object.keys(BEE_WINGS) as BeeWingStyle[]
 
 describe('animals [SPEC-13.2]', () => {
   it('come out bees first, fifteen of them, then the two butterflies [SPEC-9.4.1]', () => {
@@ -32,13 +21,10 @@ describe('animals [SPEC-13.2]', () => {
   })
 
   it('all fly [SPEC-13.2.3], wings beating a few times per second at most [SPEC-13.2.4]', () => {
-    for (const style of STYLES) {
-      const animals = rucheAnimals(style)
-      for (const id of ANIMAL_IDS) {
-        const { gait, flight } = animals[id]
-        expect(gait).toBe('fly')
-        expect(Math.max(flight!.wingRate, flight!.restRate), `${style} ${id}`).toBeLessThanOrEqual(MAX_WING_RATE)
-      }
+    for (const id of ANIMAL_IDS) {
+      const { gait, flight } = ANIMALS[id]
+      expect(gait).toBe('fly')
+      expect(Math.max(flight!.wingRate, flight!.restRate), id).toBeLessThanOrEqual(MAX_WING_RATE)
     }
   })
 
@@ -152,7 +138,7 @@ describe('paths [SPEC-13.2.1] [SPEC-13.2.3]', () => {
 
   // Animals in the open are drawn in the order of their ground point: see overlap.ts.
   it.each(ANIMAL_IDS)('%s: never crosses the depth of a still animal while overlapping it', (id) => {
-    for (const style of STYLES) expect(depthCrossings(rucheAnimals(style), id), style).toEqual([])
+    expect(depthCrossings(ANIMALS, id)).toEqual([])
   })
 
   it.each(ANIMAL_IDS)('%s: flies back to its hideout in less than a second [SPEC-13.2.3]', (id) => {

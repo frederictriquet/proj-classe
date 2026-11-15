@@ -8,7 +8,7 @@
 // [SPEC-13.5.4].
 import { Graphics, type Container } from 'pixi.js'
 import type { Builder, Draw, RigFactory } from '../../silence/rig'
-import { BEE_IDS, BEE_WINGS, BUTTERFLY_IDS, DEFAULT_BEE_WINGS, type AnimalId, type BeeWingStyle, type ButterflyId } from './animal-data'
+import { BEE_IDS, BEE_WINGS, BUTTERFLY_IDS, type AnimalId, type ButterflyId } from './animal-data'
 import { PALETTE } from './palette'
 
 /** Ellipse turned by `angle` (radians) about its centre, as a polygon: a wing or a leaf. */
@@ -57,16 +57,13 @@ function antenna(b: Builder, parent: Container, x: number, y: number, length: nu
 
 /** [SPEC-13.2.1] [SPEC-13.2.4] The bee, side view, facing right: a round striped body, a big yellow
  *  head with two big eyes and two antennae, three short legs, two cream wings on its back. */
-function bee(style: BeeWingStyle): RigFactory {
-  const wings = BEE_WINGS[style]
+function bee(): RigFactory {
   return (b, figure) => {
     const { yellow, ink, cream } = PALETTE
-    const translucent = wings.alpha < 1
     const wing = (x: number, y: number, dim: number): Container => {
       const node = b.joint(figure, x, y)
-      node.alpha = wings.alpha
       // Standing up on the back, leaning backwards, at rotation 0.
-      b.cut(node, turnedOval(x - 6, y - 15, 9.5, 17, -0.35), cream, { shadow: !translucent, dim })
+      b.cut(node, turnedOval(x - 6, y - 15, 9.5, 17, -0.35), cream, { dim })
       return node
     }
     const farWing = wing(-12, -48, 0.12)
@@ -92,7 +89,7 @@ function bee(style: BeeWingStyle): RigFactory {
     const nearWing = wing(-4, -50, 0)
     // The front leg in front of the head: it rises to clean the antennae [SPEC-13.2.3].
     figure.addChild(legs[2]!.node)
-    const wingOf = (node: Container) => ({ node, folded: wings.folded, up: wings.up, down: wings.down })
+    const wingOf = (node: Container) => ({ node, folded: BEE_WINGS.folded, up: BEE_WINGS.up, down: BEE_WINGS.down })
     return {
       upper: [
         { node: body, baseY: -32 },
@@ -185,11 +182,9 @@ function butterfly(id: ButterflyId): RigFactory {
   }
 }
 
-/** [SPEC-13.2] How to draw each animal of the hive, the bees' wings drawn the `style` way. */
-export function rucheRigs(style: BeeWingStyle = DEFAULT_BEE_WINGS): Readonly<Record<AnimalId, RigFactory>> {
-  const shared = bee(style)
-  return Object.fromEntries([
-    ...BEE_IDS.map((id) => [id, shared] as const),
-    ...BUTTERFLY_IDS.map((id) => [id, butterfly(id)] as const),
-  ]) as Record<AnimalId, RigFactory>
-}
+/** [SPEC-13.2] How to draw each animal of the hive: every bee shares one drawing. */
+const SHARED_BEE = bee()
+export const RIGS = Object.fromEntries([
+  ...BEE_IDS.map((id) => [id, SHARED_BEE] as const),
+  ...BUTTERFLY_IDS.map((id) => [id, butterfly(id)] as const),
+]) as Readonly<Record<AnimalId, RigFactory>>
