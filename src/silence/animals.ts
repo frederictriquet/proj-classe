@@ -4,15 +4,17 @@
 // in the actors layer, sorted by depth with the other animals.
 import type { Container } from 'pixi.js'
 import type { Activity, AnimalSpec, AnimalState } from './animal'
-import { AnimalModel } from './animal-model'
-import type { Decor } from './decor'
+import { AnimalModel, type Pose } from './animal-model'
+import type { Decor, DecorAnimal } from './decor'
 import type { AnimalArt } from './rig'
 
 /** [SPEC-9.3] Common interface of the animals: set the target state, advance by a time step. */
-export interface Animal<Id extends string = string> {
+export interface Animal<Id extends string = string> extends DecorAnimal<Id> {
   readonly id: Id
   /** What the animal is doing now. */
   readonly state: AnimalState
+  /** Current pose of its pieces [SPEC-9.3] [SPEC-14.2.1]. */
+  readonly pose: Readonly<Pose>
   setTarget(state: AnimalState): void
   /** Advances by `dt` seconds (see `frameStep` in ambient.ts). */
   update(dt: number): void
@@ -54,6 +56,9 @@ export function createAnimal<Id extends string>(spec: AnimalSpec<Id>, art: Anima
     model,
     get state() {
       return model.state
+    },
+    get pose() {
+      return model.pose
     },
     setTarget(state) {
       model.setTarget(state)

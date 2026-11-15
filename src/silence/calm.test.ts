@@ -81,6 +81,7 @@ describe('calm gauge and come-out times [SPEC-9.4.1]', () => {
     expect(comeOutTimes(300, 30, 6)).toEqual([300, 330, 360, 390, 420, 450])
     expect(comeOutTimes(90, 30, 6)).toEqual([90, 120, 150, 180, 210, 240])
     expect(comeOutTimes(5, 10, 8)).toEqual([5, 15, 25, 35, 45, 55, 65, 75])
+    expect(comeOutTimes(5, 5, 20)).toEqual(Array.from({ length: 20 }, (_, i) => 5 + 5 * i))
     expect(() => comeOutTimes(90, 30, 1)).toThrow(RangeError)
     expect(() => new CalmLogic(['alone'])).toThrow(RangeError)
   })
@@ -115,11 +116,14 @@ describe('calm gauge and come-out times [SPEC-9.4.1]', () => {
     })
   }
 
-  for (const count of [8, 17]) {
-    it(`keeps the chosen interval for ${count} animals, including bees and butterflies [SPEC-9.8] [SPEC-13.2]`, () => {
+  for (const count of [8, 17, 20]) {
+    it(`keeps the chosen interval for ${count} animals [SPEC-9.8] [SPEC-13.2] [SPEC-14.2]`, () => {
       const ids = Array.from({ length: count }, (_, i) => `animal${i + 1}`)
       const logic = new CalmLogic(ids)
-      const settings = { ...DEFAULT_CALM_SETTINGS, firstS: 30, intervalS: 5 }
+      const settings = { ...DEFAULT_CALM_SETTINGS, firstS: 5, intervalS: 5 }
+      const times = comeOutTimes(settings.firstS, settings.intervalS, count)
+      expect(times[0]).toBe(5)
+      expect(times[count - 1]).toBe(settings.firstS + (count - 1) * settings.intervalS)
       for (let i = 0; i < count; i++) {
         logic.step(QUIET, (i === 0 ? settings.firstS : settings.intervalS) - DT, settings)
         const before = logic.step(QUIET, 0, settings)

@@ -81,7 +81,9 @@ export async function startSilence<Id extends string, D extends Decor>(context: 
       animal.update(dt)
     }
     rewarded = rewardActive(rewarded, output, animals.map((animal) => animal.state))
-    decor.tick(dt)
+    // [SPEC-14.2.1] [SPEC-14.2.2] Passes the animals' state and pose for decors whose hideouts
+    // follow their animal (the eggs of the brood); ignored by the forest, the farm and the hive.
+    decor.tick(dt, animals)
     reward.update(dt, rewarded)
   })
 

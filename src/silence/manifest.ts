@@ -1,6 +1,6 @@
-// [SPEC-4.1] [SPEC-9.6] [SPEC-9.8] [SPEC-13.1.1] Card of an activity of silence: animals come out
-// when the class is quiet and hide at the noise. The activity makes no sound; it listens to the
-// microphone.
+// [SPEC-4.1] [SPEC-9.6] [SPEC-9.8] [SPEC-13.1.1] [SPEC-14.1.1] Card of an activity of silence:
+// animals come out when the class is quiet and hide at the noise. The activity makes no sound; it
+// listens to the microphone.
 //
 // [SPEC-9.6] The four settings, applied at once [SPEC-7.2]. Kept free of the calm logic so the
 // menu stays light: manifest.test.ts checks that the defaults are DEFAULT_CALM_SETTINGS and the

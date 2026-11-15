@@ -1,10 +1,10 @@
-// [SPEC-9.3] [SPEC-8.5] [SPEC-9.8] [SPEC-13.2] Development gallery of an activity of silence: its animals in
-// its decor, driven with the keyboard, with a frames-per-second counter. Escape and + = - stay for
-// the host.
+// [SPEC-9.3] [SPEC-8.5] [SPEC-9.8] [SPEC-13.2] [SPEC-14.2] Development gallery of an activity of
+// silence: its animals in its decor, driven with the keyboard, with a frames-per-second counter.
+// Escape and + = - stay for the host.
 //
-// Keys: 1 to 9 select one of the first nine animals, 0 all of them, the right and left arrows
-// the next and the previous animal (any number of them [SPEC-13.2]; the host leaves the arrows to
-// the app); c caché,
+// Keys: 1 to 9 select one of the first nine animals, 0 all of them, Tab / Shift+Tab and the right /
+// left arrows the next and the previous animal (any number of them [SPEC-13.2] [SPEC-14.2]; the
+// host leaves the arrows to the app); c caché,
 // m museau, a s'approche, i installé, l alerte, f fuite; b broute, g se gratte, d dort,
 // r regarde, p repos, y cligne; space pauses, n advances one frame while paused, h hides this
 // panel.
@@ -39,6 +39,29 @@ const STATE_KEYS: Record<string, AnimalState> = { c: 'hidden', m: 'peeking', a: 
 const ACTIVITY_KEYS: Record<string, Activity> = { b: 'graze', g: 'scratch', d: 'sleep', r: 'look', p: 'rest' }
 const FRAME = 1 / 60
 
+/** Next (`step` 1) or previous (-1) choice, going through « tous » between the last animal and
+ *  the first [SPEC-13.2] [SPEC-14.2]. */
+export function cycleGallerySelection<Id extends string>(ids: readonly Id[], current: Id | 'all', step: 1 | -1): Id | 'all' {
+  const choices: (Id | 'all')[] = ['all', ...ids]
+  return choices[(choices.indexOf(current) + step + choices.length) % choices.length]!
+}
+
+/** Selection chosen by a key press (`1` to `9`, `0` for all, `Tab` / `Shift+Tab` and right / left
+ *  arrows for next / previous), or `undefined` when the key does not change the selection. */
+export function selectGalleryAnimal<Id extends string>(
+  ids: readonly Id[],
+  current: Id | 'all',
+  key: string,
+  shiftKey = false,
+): Id | 'all' | undefined {
+  const lower = key.toLowerCase()
+  if (/^[0-9]$/.test(lower) && Number(lower) <= ids.length) return lower === '0' ? 'all' : ids[Number(lower) - 1]!
+  if (lower === 'arrowright') return cycleGallerySelection(ids, current, 1)
+  if (lower === 'arrowleft') return cycleGallerySelection(ids, current, -1)
+  if (lower === 'tab') return cycleGallerySelection(ids, current, shiftKey ? -1 : 1)
+  return undefined
+}
+
 /** @param names name of each animal in the panel, in French. */
 export async function startGallery<Id extends string, D extends Decor>(
   context: AppContext,
@@ -63,13 +86,8 @@ export async function startGallery<Id extends string, D extends Decor>(
   const animals = new Map<Id, GalleryAnimal<Id>>(
     world.animals.map((spec, i) => [spec.id, createAnimal(spec, drawAnimal(spec, world.rigs[spec.id], world.paper), decor, i + 1)]),
   )
-  const pick = (id: Id | 'all'): GalleryAnimal<Id>[] => (id === 'all' ? [...animals.values()] : [animals.get(id)!])
-  /** Next (`step` 1) or previous (-1) choice, going through « tous » between the last animal and
-   *  the first. */
-  const cycle = (current: Id | 'all', step: 1 | -1): Id | 'all' => {
-    const choices: (Id | 'all')[] = ['all', ...ids]
-    return choices[(choices.indexOf(current) + step + choices.length) % choices.length]!
-  }
+  const animalList = [...animals.values()]
+  const pick = (id: Id | 'all'): GalleryAnimal<Id>[] => (id === 'all' ? animalList : [animals.get(id)!])
 
   let selection: Id | 'all' = 'all'
   let paused = false
@@ -92,8 +110,8 @@ export async function startGallery<Id extends string, D extends Decor>(
   context.container.append(panel)
 
   const advance = (dt: number) => {
-    if (dt > 0) decor.tick(dt)
-    for (const animal of animals.values()) animal.update(dt)
+    for (const animal of animalList) animal.update(dt)
+    if (dt > 0) decor.tick(dt, animalList)
   }
 
   const describe = () => {
@@ -111,7 +129,7 @@ export async function startGallery<Id extends string, D extends Decor>(
       }),
       '',
       `Choix : ${selection === 'all' ? 'tous' : names[selection]}`,
-      `1-${Math.min(9, ids.length)} un animal, 0 tous, ← → précédent, suivant`,
+      `1-${Math.min(9, ids.length)} un animal, 0 tous, Tab/Maj+Tab ou ← → préc./suiv.`,
       'c caché  m museau  a approche',
       'i installé  l alerte  f fuite',
       'b broute  g gratte  d dort',
@@ -142,8 +160,8 @@ export async function startGallery<Id extends string, D extends Decor>(
   const onKey = (event: KeyboardEvent) => {
     if (event.metaKey || event.ctrlKey || event.altKey) return
     const key = event.key.toLowerCase()
-    if (/^[0-9]$/.test(key) && Number(key) <= ids.length) selection = key === '0' ? 'all' : ids[Number(key) - 1]!
-    else if (key === 'arrowright' || key === 'arrowleft') selection = cycle(selection, key === 'arrowright' ? 1 : -1)
+    const nextSelection = selectGalleryAnimal(ids, selection, event.key, event.shiftKey)
+    if (nextSelection !== undefined) selection = nextSelection
     else if (key in STATE_KEYS) for (const animal of pick(selection)) animal.setTarget(STATE_KEYS[key]!)
     else if (key in ACTIVITY_KEYS) for (const animal of pick(selection)) animal.forceActivity(ACTIVITY_KEYS[key]!)
     else if (key === 'y') for (const animal of pick(selection)) animal.forceBlink()

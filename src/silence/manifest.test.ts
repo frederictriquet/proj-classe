@@ -23,11 +23,14 @@ describe('card of an activity of silence [SPEC-9.6] [SPEC-9.8]', () => {
     expect(manifest.settings.find((s) => s.id === SETTING.intervalS)?.label).toBe('Délai de calme entre deux animaux')
   })
 
-  it('names the first animal of the activity in the initial-delay label [SPEC-13.1.1]', () => {
-    const own = silenceManifest({ id: 'essai', title: 'Essai', thumbnail: 'essai.svg', firstAnimal: 'la première abeille' })
-    expect(own.settings.find((s) => s.id === SETTING.firstS)?.label).toBe('Délai de calme avant la première abeille')
-    // [SPEC-9.6] The zones keep « les animaux ».
-    expect(own.soundZones).toEqual(manifest.soundZones)
+  it('names the first animal of the activity in the initial-delay label [SPEC-13.1.1] [SPEC-14.1.1]', () => {
+    const hive = silenceManifest({ id: 'essai', title: 'Essai', thumbnail: 'essai.svg', firstAnimal: 'la première abeille' })
+    expect(hive.settings.find((s) => s.id === SETTING.firstS)?.label).toBe('Délai de calme avant la première abeille')
+    const brood = silenceManifest({ id: 'couvain', title: 'Couvain du silence', thumbnail: 'couvain.svg', firstAnimal: 'le premier poussin' })
+    expect(brood.settings.find((s) => s.id === SETTING.firstS)?.label).toBe('Délai de calme avant le premier poussin')
+    expect(brood.settings.find((s) => s.id === SETTING.intervalS)?.label).toBe('Délai de calme entre deux animaux')
+    // [SPEC-9.6] [SPEC-14.1.1] The sensitivity and the zones keep « les animaux ».
+    expect(brood.soundZones).toEqual(manifest.soundZones)
   })
 
   it('preserves a saved 300 s duration as the initial delay and defaults the new interval', () => {

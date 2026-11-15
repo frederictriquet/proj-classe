@@ -85,3 +85,20 @@ describe('rewardActive with eight animals [SPEC-9.8]', () => {
     expect(rewardActive(false, output, settled)).toBe(true)
   })
 })
+
+describe('rewardActive with twenty animals [SPEC-9.8] [SPEC-14.2] [SPEC-14.4]', () => {
+  it('waits for all twenty chicks to be settled on screen and ends at the first flight', () => {
+    const twenty = Array.from({ length: 20 }, (_, i) => `chick${i + 1}`)
+    const logic = new CalmLogic(twenty)
+    const settings = { ...DEFAULT_CALM_SETTINGS, firstS: 5, intervalS: 5 }
+    const lastOutS = settings.firstS + (twenty.length - 1) * settings.intervalS
+    let output = logic.step(QUIET, 0, settings)
+    for (let i = 0; i < Math.round(lastOutS / DT); i++) output = logic.step(QUIET, DT, settings)
+    expect(output.allSettled).toBe(true)
+    const settled: AnimalState[] = twenty.map(() => 'settled')
+    expect(rewardActive(false, output, [...settled.slice(0, 19), 'approaching'])).toBe(false)
+    expect(rewardActive(false, output, settled)).toBe(true)
+    const noise = logic.step(LOUD, DT, settings)
+    expect(rewardActive(true, noise, settled)).toBe(false)
+  })
+})
