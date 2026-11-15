@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { ANIMAL_IDS, ANIMAL_STATES, ANIMALS, type AnimalState } from './animal-data'
-import { AnimalModel, BLINK_TIME, RECOVER_TIME, seededRandom, TURN_TIME, type Pose } from './animal-model'
+import { ANIMAL_STATES, type AnimalState } from '../../silence/animal'
+import { AnimalModel, BLINK_TIME, RECOVER_TIME, TURN_TIME, type Pose } from '../../silence/animal-model'
+import { seededRandom } from '../../silence/random'
+import { ANIMAL_IDS, ANIMALS } from './animal-data'
 
 const DT = 1 / 60
 

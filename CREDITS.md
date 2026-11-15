@@ -5,4 +5,4 @@ Règle (SPEC-8.4) : les graphismes sont produits en code. Une ressource externe 
 | Ressource | Utilisée dans | Source | Licence |
 | --- | --- | --- | --- |
 
-Aucune ressource externe à ce jour : la forêt, sa vignette et la palette sont dessinées en code (`src/apps/foret/`, `src/art/palette.ts`).
+Aucune ressource externe à ce jour : la forêt, sa vignette et sa palette sont dessinées en code (`src/apps/foret/`, `src/silence/`).

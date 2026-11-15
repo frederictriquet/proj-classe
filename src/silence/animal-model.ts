@@ -1,4 +1,4 @@
-// [SPEC-9.3] [SPEC-8.5] Behaviour of one animal, free of PixiJS: the state it is in, where it is
+// [SPEC-9.3] [SPEC-8.5] [SPEC-9.8] Behaviour of one animal, free of PixiJS: the state it is in, where it is
 // on its path, and the pose of its pieces. Every value changes continuously: positions move at a
 // bounded speed, pose values ease towards their target, turning round goes through a side view
 // of zero width. Only fleeing is fast.
@@ -17,7 +17,8 @@ import {
   type Activity,
   type AnimalSpec,
   type AnimalState,
-} from './animal-data'
+} from './animal'
+import { seededRandom } from './random'
 
 /** Values the drawing applies to the pieces of an animal. */
 export interface Pose {
@@ -76,18 +77,6 @@ const ACTIVITY_TIME: Record<Activity, [number, number]> = {
   scratch: [1.8, 2.6],
   sleep: [7, 11],
   look: [3, 5],
-}
-
-/** Seeded random numbers in [0, 1): the same small activities at each run of the gallery. */
-export function seededRandom(seed: number): () => number {
-  let state = seed >>> 0
-  return () => {
-    state = (state + 0x6d2b79f5) >>> 0
-    let t = state
-    t = Math.imul(t ^ (t >>> 15), t | 1)
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
 }
 
 /** Moves `value` towards `target` with an exponential ease. */
@@ -451,7 +440,7 @@ export class AnimalModel {
         ? -spec.bounce * this.stride * Math.abs(Math.sin(this.gait / 2))
         : -spec.bounce * this.stride * Math.abs(Math.sin(this.gait))
 
-    // Facing: the direction of travel; at rest, towards the clearing.
+    // Facing: the direction of travel; at rest, towards the open.
     if (!spec.frontal) {
       let wanted = Math.sign(this.facing) || 1
       if (state === 'alert') {

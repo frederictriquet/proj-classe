@@ -4,17 +4,11 @@
 // with transparency, which brightens and warms every colour without hiding any. Only positions
 // and transparency change.
 import { Container, Graphics } from 'pixi.js'
-import { PALETTE } from '../../art/palette'
+import { PALETTE } from './palette'
 import type { Clearing } from './clearing'
 import { DECOR_BOUNDS } from './layout'
-import { createFireflies, fadeLevel, fireflyAlpha, fireflyPosition, REWARD } from './reward'
-
-export interface RewardView {
-  /** Advances by `dt` seconds; the reward fades in while `active`, out otherwise. */
-  update(dt: number, active: boolean): void
-  /** 0: nothing shows; 1: full reward. */
-  readonly level: number
-}
+import { fadeLevel, type RewardView } from '../../silence/reward'
+import { createFireflies, fireflyAlpha, fireflyPosition, REWARD } from './reward'
 
 /** Adds the reward to the clearing, invisible until it is active. */
 export function createReward(clearing: Clearing): RewardView {

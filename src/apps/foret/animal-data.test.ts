@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { ANIMAL_IDS, ANIMALS, branchTopY, pathLengths, pointAt, type AnimalSpec } from './animal-data'
-import { contains, HIDEOUT_IDS, intersects, SAFE_ZONE, type Rect } from './layout'
+import { pathLengths, pointAt, type AnimalSpec } from '../../silence/animal'
+import { contains, intersects, SAFE_ZONE, type Rect } from '../../silence/geometry'
+import { ANIMAL_IDS, ANIMALS, branchTopY } from './animal-data'
+import { HIDEOUT_IDS } from './layout'
 
-/** Paper shadow of a piece, added to the extent of a drawing (see animal-art.ts). */
+/** Paper shadow of a piece, added to the extent of a drawing (see src/silence/rig.ts). */
 const SHADOW = { x: 5, y: 7 }
 
 /** Box of the drawing with its feet at (x, y), facing one way or, if unknown, either way. */

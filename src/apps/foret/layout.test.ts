@@ -1,22 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { AMBIENT, frameStep, oscillate, rayAlpha, wrap } from './ambient'
+import { frameStep, MAX_STEP, oscillate, wrap } from '../../silence/ambient'
+import { contains, insideEllipse, intersects, SAFE_ZONE, viewport, type Rect } from '../../silence/geometry'
+import { AMBIENT, rayAlpha } from './ambient'
 import {
   BRANCH_LEAVES,
   BURROW,
   BUSH,
-  contains,
   DECOR_BOUNDS,
   HIDEOUT_IDS,
   HIDEOUTS,
-  insideEllipse,
-  intersects,
   LEFT_TREE,
   LOG,
   MEADOW,
   RIGHT_TREE,
-  SAFE_ZONE,
-  viewport,
-  type Rect,
 } from './layout'
 
 /** [SPEC-8.6] Screens of the formats to support, in CSS pixels. */
@@ -157,7 +153,7 @@ describe('ambient life [SPEC-8.5]', () => {
 
   it('caps the time step after a pause', () => {
     expect(frameStep(16)).toBeCloseTo(0.016)
-    expect(frameStep(5000)).toBe(AMBIENT.maxStep)
+    expect(frameStep(5000)).toBe(MAX_STEP)
     expect(frameStep(-3)).toBe(0)
   })
 })

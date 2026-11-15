@@ -1,19 +1,12 @@
 // [SPEC-9.5] [SPEC-8.5] Reward of « Forêt du silence »: once the six animals are settled, the
 // clearing comes alive gently (fireflies, warmer light) for as long as the calm lasts. It plays
-// no sound [SPEC-9.1]. Free of PixiJS: when the reward shows, how fast it fades, how the
-// fireflies drift. reward-art.ts draws it.
-//
-// Reading of the spec, fixed by reward.test.ts: a short alert (under the tolerance) freezes the
-// animals but does not end the reward; the first flight does.
-import { ANIMAL_IDS, type AnimalState } from './animal-data'
-import type { CalmOutput } from './calm'
-import { MEADOW, type Rect } from './layout'
+// no sound [SPEC-9.1]. Free of PixiJS: how the fireflies drift and glow. When the reward shows and
+// how fast it fades are shared (src/silence/reward.ts); reward-art.ts draws it.
+import type { Rect } from '../../silence/geometry'
+import { seededRandom } from '../../silence/random'
+import { MEADOW } from './layout'
 
 export const REWARD = {
-  /** Seconds for the reward to appear fully: it comes slowly. */
-  fadeInS: 5,
-  /** Seconds for it to go at the first flight. */
-  fadeOutS: 1.2,
   /** Opacity of the warm light over the whole clearing, at full reward. */
   warmAlpha: 0.12,
   fireflies: 14,
@@ -33,22 +26,6 @@ export const REWARD = {
   haloAlpha: 0.4,
 } as const
 
-/**
- * [SPEC-9.5] Whether the reward shows after this frame. It starts when the logic calls the six
- * animals out in the calm and all six are settled on screen (the last one settles a few seconds
- * after its call). It ends at the first fright, when the logic sends the animals back in.
- */
-export function rewardActive(wasActive: boolean, output: CalmOutput, states: readonly AnimalState[]): boolean {
-  if (wasActive) return !ANIMAL_IDS.some((id) => output.targets[id] === 'hidden')
-  return output.allSettled && states.length === ANIMAL_IDS.length && states.every((state) => state === 'settled')
-}
-
-/** Moves the reward level (0 none, 1 full) towards `active` for `dt` seconds. */
-export function fadeLevel(level: number, active: boolean, dt: number): number {
-  const step = Math.max(dt, 0) / (active ? REWARD.fadeInS : REWARD.fadeOutS)
-  return active ? Math.min(1, level + step) : Math.max(0, level - step)
-}
-
 export interface Firefly {
   /** Centre of its drift, world units. */
   x: number
@@ -65,23 +42,11 @@ export interface Firefly {
   delay: number
 }
 
-/** Seeded random numbers in [0, 1): the same fireflies at every launch. */
-function random(seed: number): () => number {
-  let state = seed >>> 0
-  return () => {
-    state = (state + 0x6d2b79f5) >>> 0
-    let t = state
-    t = Math.imul(t ^ (t >>> 15), t | 1)
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
-
 const between = (rand: () => number, [min, max]: readonly [number, number]) => min + rand() * (max - min)
 
 /** The fireflies, spread over `REWARD.area` with their drift kept inside it. */
 export function createFireflies(seed = 7): Firefly[] {
-  const rand = random(seed)
+  const rand = seededRandom(seed)
   const { area, drift, glow } = REWARD
   return Array.from({ length: REWARD.fireflies }, (_, i) => {
     const ax = between(rand, drift.amplitude)

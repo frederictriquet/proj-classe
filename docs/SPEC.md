@@ -81,9 +81,9 @@ SPEC-3.9 Version défectueuse et retour arrière
 
 - 8.1 Public : 4-5 ans. Style papier découpé : aplats de couleur, formes rondes, grands yeux, pas de détail fin, pas de texte.
 - 8.2 Lisible de loin sur un vidéoprojecteur : contrastes francs, pas de teintes pâles voisines, éléments importants de grande taille.
-- 8.3 Palette limitée (8 à 10 couleurs), définie une fois dans un module partagé et consignée ici par la première tâche graphique.
-- 8.3.1 Palette retenue (dix couleurs, `src/art/palette.ts`) : encre `#1B1B1B` (pupilles, trous, ombres), crème `#FBF6E9` (nuages, yeux, ventres, rayons), soleil `#F4C430` (soleil, fleurs, yeux de la chouette, lucioles), ciel `#8ED1F0`, sarcelle `#5E9E9A` (arbres lointains), herbe `#7CC36A` (sol de la clairière), forêt `#2E6B3F` (feuillages, buisson, lisière, fougères), écorce `#7A4A26` (troncs, branche, terre, pelage sombre), fauve `#D9A066` (bois coupé, pelage clair, faces), orange `#D9622B` (renard, écureuil).
-- 8.3.2 Aucune autre teinte n'est dessinée : ombres du papier, lumière et profondeur utilisent ces couleurs en transparence. Le fauve est trop proche de l'herbe en luminosité pour s'y poser seul.
+- 8.3 Chaque activité a sa palette limitée (8 à 10 couleurs), définie dans son dossier et consignée ici (décision du 2026-11-15). Chaque palette comprend une encre (pupilles, ombres du papier) et une crème (blanc des yeux) : le code commun des activités du silence (SPEC-9.8) dessine avec elles et ne contient aucune couleur.
+- 8.3.1 Palette de la forêt (dix couleurs, `src/apps/foret/palette.ts`) : encre `#1B1B1B` (pupilles, trous, ombres), crème `#FBF6E9` (nuages, yeux, ventres, rayons), soleil `#F4C430` (soleil, fleurs, yeux de la chouette, lucioles), ciel `#8ED1F0`, sarcelle `#5E9E9A` (arbres lointains), herbe `#7CC36A` (sol de la clairière), forêt `#2E6B3F` (feuillages, buisson, lisière, fougères), écorce `#7A4A26` (troncs, branche, terre, pelage sombre), fauve `#D9A066` (bois coupé, pelage clair, faces), orange `#D9622B` (renard, écureuil).
+- 8.3.2 Une activité ne dessine aucune autre teinte que celles de sa palette : ombres du papier, lumière et profondeur utilisent ces couleurs en transparence. Dans la forêt, le fauve est trop proche de l'herbe en luminosité pour s'y poser seul.
 - 8.4 Graphismes produits en code (SVG écrits à la main ou formes PixiJS). Ressources externes admises seulement sous licence CC0 ou équivalente, listées avec leur source et leur licence dans `CREDITS.md`.
 - 8.5 Animations douces et lentes. Rien de clignotant ni de brusque, sauf la fuite des animaux.
 - 8.6 L'image s'adapte à tout format d'écran (16:9, 16:10, 4:3) sans déformation ni bandes : le décor s'étend, les éléments importants restent dans une zone centrale sûre.
@@ -102,6 +102,7 @@ SPEC-3.9 Version défectueuse et retour arrière
 - 9.5 Récompense : quand les six animaux sont installés, la clairière s'anime doucement (lucioles ou papillons, lumière plus chaude) tant que le calme dure. Aucune récompense sonore.
 - 9.6 Réglages déclarés, valeurs de départ à ajuster en classe : sensibilité (seuil d'alerte en dB au-dessus du bruit ambiant, de 2 à 80 dB pour que le curseur ne bloque jamais l'adulte, défaut 6 ; seuil de fuite = seuil d'alerte + 6) ; durée pour que tous les animaux soient là (30 s à 5 min, défaut 90 s) ; tolérance d'alerte (0 à 2 s, défaut 0,5 s). Le panneau affiche les deux seuils sur le niveau sonore en direct, le curseur de sensibilité sous la barre et la zone (SPEC-7.5) : « Calme : les animaux sortent », « Alerte : les animaux se figent, puis fuient si ça dure », « Trop de bruit : les animaux fuient ».
 - 9.7 Les animaux sont l'indicateur pour les enfants. Pour l'adulte, un mini-sonomètre est projeté en bas à gauche de la scène (décision du 2026-11-15) : barre verticale de 6 pixels de large et d'un quart de la hauteur de l'écran, qui montre en direct l'écart au bruit ambiant (SPEC-6.4) sur une échelle fixe allant de 6 dB sous le bruit ambiant à 90 dB au-dessus (au-delà du seuil de fuite le plus haut), avec un trait au seuil d'alerte et un trait au seuil de fuite (SPEC-9.6). Couleurs de la palette uniquement (SPEC-8.3.2). C'est un affichage, pas un contrôle (SPEC-4.4).
+- 9.8 Code commun (décision du 2026-11-15). Le comportement et les états des animaux (9.3), la logique (9.4), le déclenchement et le fondu de la récompense (9.5), les réglages (9.6) et le mini-sonomètre (9.7) sont communs à la forêt et à la ferme (SPEC-12), dans `src/silence/`. Chaque activité fournit son décor et ses cachettes, ses animaux (ordre de sortie, dessins, trajets), sa palette (SPEC-8.3), le dessin de sa récompense et les couleurs du mini-sonomètre. Le nombre d'animaux est propre à l'activité : les paliers de la jauge (9.4.1) se répartissent régulièrement entre le premier animal et le dernier.
 
 ## SPEC-10 Points à vérifier sur le Mac de l'enseignante
 
@@ -125,3 +126,12 @@ SPEC-3.9 Version défectueuse et retour arrière
 - Micro externe.
 - Navigateurs autres que Chrome.
 - Application native.
+
+## SPEC-12 Ferme
+
+Décisions du 2026-11-15.
+
+- 12.1 Même but et même code commun que la forêt (SPEC-9.1, SPEC-9.8), dans un décor de ferme. La ferme n'émet aucun son. Besoin déclaré : `microphone`.
+- 12.2 Huit animaux, du moins timide au plus timide : poule, cheval, lapin, mouton, cochon, vache, canard, chèvre.
+- 12.3 Palette propre à la ferme (SPEC-8.3), consignée ici par la tâche qui la dessine.
+- 12.4 Restent à décider avant de dessiner : le titre sur le menu, le décor et la cachette de chaque animal, la récompense.

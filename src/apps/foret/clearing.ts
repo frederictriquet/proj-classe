@@ -8,8 +8,11 @@
 // of the shape it moves to `actors`, drawn in front of the near trees and behind the foreground.
 // Everything is in world units (layout.ts): `resize` scales the whole clearing to the screen.
 import { Container, Graphics } from 'pixi.js'
-import { PALETTE, PAPER_SHADOW } from '../../art/palette'
-import { AMBIENT, oscillate, rayAlpha, wrap } from './ambient'
+import { PALETTE, PAPER_SHADOW } from './palette'
+import { oscillate, wrap } from '../../silence/ambient'
+import type { Decor } from '../../silence/decor'
+import { viewport, type Ellipse, type Point, type Rect } from '../../silence/geometry'
+import { AMBIENT, rayAlpha } from './ambient'
 import {
   BRANCH,
   BRANCH_LEAVES,
@@ -24,18 +27,13 @@ import {
   RIGHT_TREE,
   ROOT_FLARE,
   SUN,
-  viewport,
-  type Ellipse,
   type HideoutId,
   type PlaneId,
-  type Point,
-  type Rect,
   type Tree,
 } from './layout'
 
-export interface Clearing {
-  /** Add this to the stage. */
-  readonly root: Container
+/** [SPEC-9.8] The decor of the forest, as the shared code sees it, plus its planes and light. */
+export interface Clearing extends Decor {
   readonly planes: Readonly<Record<PlaneId, Container>>
   /** Animals in the open: in front of the near trees, behind the light rays and the foreground. */
   readonly actors: Container
@@ -43,10 +41,6 @@ export interface Clearing {
   readonly light: Container
   /** One container per hideout, right behind the shape that hides an animal. */
   readonly slots: Readonly<Record<HideoutId, Container>>
-  /** [SPEC-8.6] Fits the clearing to a screen of this size, in CSS pixels. */
-  resize(width: number, height: number): void
-  /** [SPEC-9.2] Advances the quiet life of the clearing by `dt` seconds. */
-  tick(dt: number): void
 }
 
 const BOTTOM = DECOR_BOUNDS.y + DECOR_BOUNDS.height

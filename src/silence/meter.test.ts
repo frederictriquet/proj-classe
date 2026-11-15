@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_CALM_SETTINGS, fleeThresholdDb } from './calm'
-import { manifest, SETTING } from './manifest'
+import { SETTING, silenceManifest } from './manifest'
 import { METER, meterFraction, meterMarks } from './meter'
+
+const manifest = silenceManifest({ id: 'essai', title: 'Essai', thumbnail: 'essai.svg', animalCount: 'huit' })
 
 describe('meterFraction [SPEC-9.7]', () => {
   it('places the scale from 6 dB below the ambient noise to 90 dB above', () => {

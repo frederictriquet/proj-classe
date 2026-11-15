@@ -1,6 +1,6 @@
-// [SPEC-9.7] Mini sound meter of « Forêt du silence », for the adult: where the live difference to
-// the ambient noise [SPEC-6.4] and the two thresholds [SPEC-9.6] lie on a fixed scale. A pure
-// module, free of PixiJS; meter-art.ts draws it.
+// [SPEC-9.7] [SPEC-9.8] Mini sound meter of the activities of silence, for the adult: where the
+// live difference to the ambient noise [SPEC-6.4] and the two thresholds [SPEC-9.6] lie on a fixed
+// scale. A pure module, free of PixiJS; meter-art.ts draws it.
 import { fleeThresholdDb } from './calm'
 
 export const METER = {
