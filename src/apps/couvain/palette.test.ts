@@ -11,7 +11,7 @@ const colors = Object.values(PALETTE)
 const known = new Set(colors.map((c) => c.toUpperCase()))
 
 /** Folders whose drawings must use the brood palette only [SPEC-8.3] [SPEC-8.3.2]. */
-const DRAWING_FOLDERS = ['.']
+const DRAWING_FOLDERS = ['.', '../couvain-galerie']
 
 /** [SPEC-8.2] Smallest lightness ratio between two colours that touch, as for the farm and the hive. */
 const MIN_RATIO = 1.7

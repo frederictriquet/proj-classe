@@ -12,6 +12,7 @@ import {
   FEEDER,
   HIDEOUTS,
   LAMPS,
+  MOTHER_HEN,
   NESTS,
   PLACES,
   type Place,
@@ -43,6 +44,7 @@ describe('incubator on every screen [SPEC-8.6]', () => {
     expect(CRATE.wallRight).toBeLessThanOrEqual(SAFE_ZONE.x + SAFE_ZONE.width)
     expect(contains(SAFE_ZONE, FEEDER.body, SAFE_MARGIN), 'feeder body').toBe(true)
     expect(contains(SAFE_ZONE, FEEDER.zone, SAFE_MARGIN), 'feeder zone').toBe(true)
+    expect(contains(SAFE_ZONE, MOTHER_HEN.footprint, SAFE_MARGIN), 'mother hen footprint').toBe(true)
     for (const lamp of LAMPS) {
       const shadeBox: Rect = {
         x: lamp.x - lamp.shadeBottomRx,
@@ -52,6 +54,7 @@ describe('incubator on every screen [SPEC-8.6]', () => {
       }
       expect(contains(SAFE_ZONE, shadeBox, SAFE_MARGIN), `lamp ${lamp.id} shade`).toBe(true)
       expect(contains(SAFE_ZONE, lamp.warmZone, SAFE_MARGIN), `lamp ${lamp.id} warmZone`).toBe(true)
+      expect(intersects(MOTHER_HEN.footprint, shadeBox), `mother hen / lamp ${lamp.id}`).toBe(false)
     }
     for (const egg of EGGS) {
       expect(contains(SAFE_ZONE, egg.footprint, SAFE_MARGIN), `${egg.id} footprint`).toBe(true)

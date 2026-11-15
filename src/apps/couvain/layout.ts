@@ -25,6 +25,14 @@ export const CRATE = {
   frontLipY: 1046,
 } as const
 
+/** [SPEC-14.4] The mother hen who peeks gently over the top wooden rim of the crate, between the
+ *  two heat lamps, to watch over her brood once all twenty chicks are settled. */
+export const MOTHER_HEN = {
+  x: 720,
+  rimY: CRATE.rimY,
+  footprint: { x: 640, y: 42, width: 160, height: 176 } satisfies Rect,
+} as const
+
 /** [SPEC-14.3] Hanging heat lamps suspended above the straw, and the warm zones their halos bathe
  *  on the straw below [SPEC-14.2.3]. The space between them at the top rim stays clear for the
  *  mother hen of the reward [SPEC-14.4]. */

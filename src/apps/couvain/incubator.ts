@@ -17,6 +17,7 @@ import { viewport, type Point } from '../../silence/geometry'
 import { BIG_SHADOW, lobed, paperPieces, pivoted, SHADOW, type PathBuilder, type Swaying } from '../../silence/paper'
 import { seededRandom } from '../../silence/random'
 import { AMBIENT } from './ambient'
+import { CHICK_EGGS, EGG_PATH_DY, type AnimalId } from './animal-data'
 import {
   CRATE,
   DECOR_BOUNDS,
@@ -24,6 +25,7 @@ import {
   EGG_SIZE,
   EGGS,
   FEEDER,
+  HIDEOUTS,
   LAMPS,
   NESTS,
   type CapVariant,
@@ -39,6 +41,8 @@ import { PALETTE } from './palette'
 export interface EggArt {
   readonly id: EggId
   readonly variant: CapVariant
+  /** True once the egg has completed its first hatching [SPEC-14.2.1]. */
+  hatched: boolean
   /** Whole egg container, pivoted at the base `(egg.x, egg.y)` so it can rock gently. */
   readonly node: Container
   /** Slot between the back and the front of the shell where the hiding chick is drawn. */
@@ -440,17 +444,24 @@ function drawOneEgg(egg: EggHideout, slot: Container): EggArt {
   const node = pivoted({ x: egg.x, y: egg.y })
   node.label = `egg:${egg.id}`
 
-  // 1. Cast shadow of the egg on the straw nest.
-  const shadow = wholeEggPath(rx, ry)(new Graphics()).fill(shadowFill)
-  shadow.position.set(egg.x + SHADOW.x, egg.y + SHADOW.y)
-  node.addChild(shadow)
+  // 1. Cast shadow of the egg on the straw nest: full egg shadow when whole, lower-shell shadow
+  //    when open so no ghost shadow remains above the opened half-shell.
+  const wholeShadow = wholeEggPath(rx, ry)(new Graphics()).fill(shadowFill)
+  wholeShadow.position.set(egg.x + SHADOW.x, egg.y + SHADOW.y)
+  node.addChild(wholeShadow)
 
-  // 2. Back interior of the opened lower shell (visible behind the chick once hatched).
+  const lowerShadow = lowerShellPath(rx, ry, splitY)(new Graphics()).fill(shadowFill)
+  lowerShadow.position.set(egg.x + SHADOW.x, egg.y + SHADOW.y)
+  lowerShadow.visible = false
+  node.addChild(lowerShadow)
+
+  // 2. Back interior of the opened lower shell (visible behind the chick once the top opens).
   const backInside = new Graphics()
-    .ellipse(egg.x, egg.y + splitY + 4, rx * 0.9, 14)
+    .ellipse(egg.x, egg.y + splitY + 6, rx * 0.86, 11)
     .fill(PALETTE.brown)
-    .ellipse(egg.x, egg.y + splitY + 6, rx * 0.78, 10)
+    .ellipse(egg.x, egg.y + splitY + 8, rx * 0.74, 8)
     .fill({ color: PALETTE.ink, alpha: 0.35 })
+  backInside.visible = false
   node.addChild(backInside)
 
   // 3. The chick's slot: between the back of the shell and the front pieces (`lower`, `whole`).
@@ -463,6 +474,7 @@ function drawOneEgg(egg: EggHideout, slot: Container): EggArt {
     lowerShellPath(rx, ry, splitY)(new Graphics()).fill(PALETTE.cream),
     lowerShellPath(rx * 0.92, ry * 0.85, splitY + 8)(new Graphics()).fill({ color: PALETTE.amber, alpha: 0.14 }),
   )
+  lower.visible = false
   node.addChild(lower)
 
   // 5. Intact whole shell (`whole`), shown at launch before hatching and when closed in `cartoon`.
@@ -481,17 +493,7 @@ function drawOneEgg(egg: EggHideout, slot: Container): EggArt {
   )
   node.addChild(whole)
 
-  // 6. Zigzag crack (`crack`) across the middle of the shell.
-  const crack = new Graphics({ label: 'crack' })
-  crack.position.set(egg.x, egg.y)
-  const pts = zigzagPoints(rx, splitY)
-  crack.moveTo(pts[0]!.x, pts[0]!.y)
-  for (const p of pts.slice(1)) crack.lineTo(p.x, p.y)
-  crack.stroke({ width: 3.5, color: PALETTE.ink, cap: 'round', join: 'round' })
-  crack.visible = false
-  node.addChild(crack)
-
-  // 7. Upper cap (`calotte`), positioned at `(egg.x, egg.y + splitY)` so it can lift or hinge.
+  // 6. Upper cap (`calotte`), positioned at `(egg.x, egg.y + splitY)` so it can lift or hinge.
   const cap = new Container({ label: 'cap' })
   cap.position.set(egg.x, egg.y + splitY)
   cap.addChild(
@@ -502,6 +504,16 @@ function drawOneEgg(egg: EggHideout, slot: Container): EggArt {
   )
   cap.visible = false
   node.addChild(cap)
+
+  // 7. Zigzag crack (`crack`) across the middle of the closed shell.
+  const crack = new Graphics({ label: 'crack' })
+  crack.position.set(egg.x, egg.y)
+  const pts = zigzagPoints(rx, splitY)
+  crack.moveTo(pts[0]!.x, pts[0]!.y)
+  for (const p of pts.slice(1)) crack.lineTo(p.x, p.y)
+  crack.stroke({ width: 3.5, color: PALETTE.ink, cap: 'round', join: 'round' })
+  crack.visible = false
+  node.addChild(crack)
 
   // 8. Small front cradle of straw wisps hugging the very bottom of the egg.
   const cradle = new Graphics()
@@ -516,6 +528,7 @@ function drawOneEgg(egg: EggHideout, slot: Container): EggArt {
   return {
     id: egg.id,
     variant: egg.variant,
+    hatched: false,
     node,
     slot,
     whole,
@@ -645,10 +658,166 @@ function drawForeground(strawWisps: Swaying[]): Container {
   return plane
 }
 
+const SPLIT_Y = -EGG_SIZE.ry * 1.02
+/** [SPEC-8.5] [SPEC-14.2.1] Seconds of gentle rocking with the zigzag crack before the cap lifts. */
+export const HATCH_WOBBLE_END = 0.65
+/** [SPEC-8.5] [SPEC-14.2.1] Total seconds of the first hatching until the cap reaches its peeking pose. */
+export const HATCH_TOTAL = 1.2
+
+interface CapPose {
+  x: number
+  y: number
+  rotation: number
+}
+
+interface EggRuntime {
+  hatchTime: number
+}
+
+const clamp01 = (v: number): number => Math.min(1, Math.max(0, v))
+const smooth = (t: number): number => 0.5 - 0.5 * Math.cos(Math.PI * clamp01(t))
+
+function lerpPose(a: CapPose, b: CapPose, t: number): CapPose {
+  return {
+    x: a.x + (b.x - a.x) * t,
+    y: a.y + (b.y - a.y) * t,
+    rotation: a.rotation + (b.rotation - a.rotation) * t,
+  }
+}
+
+function applyCapPose(cap: Container, pose: CapPose): void {
+  cap.position.set(pose.x, pose.y)
+  cap.rotation = pose.rotation
+}
+
+function resolveEggId(id: string): EggId | undefined {
+  if (id in CHICK_EGGS) return CHICK_EGGS[id as AnimalId]
+  if (id in HIDEOUTS) return id as EggId
+  return undefined
+}
+
+function syncEggBack(egg: EggArt): void {
+  const wholeShadow = egg.node.children[0]
+  const lowerShadow = egg.node.children[1]
+  const backInside = egg.node.children[2]
+  if (wholeShadow) wholeShadow.visible = egg.whole.visible
+  if (lowerShadow) lowerShadow.visible = !egg.whole.visible
+  if (backInside) backInside.visible = !egg.whole.visible
+}
+
+/**
+ * [SPEC-14.2.1] [SPEC-14.2.2] Updates one egg from its chick's state and pose:
+ * - Intact (`whole`) at launch before the first exit;
+ * - First exit: rocks gently (`HATCH_WOBBLE_END`) with the zigzag `crack` across the middle, then
+ *   lifts its `cap` smoothly into the « pointe le museau » pose (`HATCH_TOTAL`);
+ * - Once hatched: follows its variant (`lid`, `hat`, `cartoon`) between « caché », « pointe le
+ *   museau » and « ouvert », and never re-hatches when the chick flees back into its shell.
+ */
+function updateEgg(egg: EggArt, spec: EggHideout, runtime: EggRuntime, animal: DecorAnimal, dt: number): void {
+  // Opens towards the back of the chick's head so its face and beak stay clear when peeking.
+  const dir: 1 | -1 = spec.nest === 0 || spec.nest === 2 ? -1 : 1
+  const closedPose: CapPose = { x: spec.x, y: spec.y + SPLIT_Y, rotation: 0 }
+  const ajarPose: CapPose = { x: spec.x + dir * 4, y: spec.y + SPLIT_Y - 4, rotation: dir * 0.16 }
+  const peekPose: CapPose =
+    egg.variant === 'hat'
+      ? { x: spec.x + dir * 2, y: spec.y - 78, rotation: dir * 0.22 }
+      : { x: spec.x + dir * 25, y: spec.y + SPLIT_Y - 6, rotation: dir * 1.05 }
+  const openPose: CapPose = { x: spec.x + dir * 22, y: spec.y - 8, rotation: dir * 1.45 }
+
+  if (!egg.hatched) {
+    if (animal.state === 'hidden') {
+      runtime.hatchTime = 0
+      egg.node.rotation = 0
+      egg.whole.visible = true
+      egg.lower.visible = false
+      egg.crack.visible = false
+      egg.cap.visible = false
+      syncEggBack(egg)
+      return
+    }
+    if (animal.state !== 'alert') runtime.hatchTime += dt
+    const leftSlot = egg.slot.children.length === 0 && (animal.state === 'approaching' || animal.state === 'settled')
+    if (leftSlot || runtime.hatchTime >= HATCH_TOTAL) {
+      egg.hatched = true
+    } else if (runtime.hatchTime <= HATCH_WOBBLE_END) {
+      const p = runtime.hatchTime / HATCH_WOBBLE_END
+      egg.node.rotation = Math.sin(p * Math.PI * 2) * 0.085
+      egg.whole.visible = true
+      egg.lower.visible = false
+      egg.crack.visible = true
+      egg.cap.visible = false
+      syncEggBack(egg)
+      return
+    } else {
+      egg.node.rotation = 0
+      const t = smooth((runtime.hatchTime - HATCH_WOBBLE_END) / (HATCH_TOTAL - HATCH_WOBBLE_END))
+      egg.whole.visible = false
+      egg.lower.visible = true
+      egg.crack.visible = t < 0.2
+      egg.cap.visible = true
+      applyCapPose(egg.cap, lerpPose(closedPose, peekPose, t))
+      syncEggBack(egg)
+      return
+    }
+  }
+
+  egg.node.rotation = 0
+  const hideY = spec.y + EGG_PATH_DY.hidden
+  const peekY = spec.y + EGG_PATH_DY.peek
+  const rimY = spec.y + EGG_PATH_DY.rim
+  const hiddenPose = egg.variant === 'lid' ? ajarPose : closedPose
+  const inSlot = egg.slot.children.length > 0 && animal.state !== 'settled'
+
+  if (!inSlot) {
+    egg.whole.visible = false
+    egg.lower.visible = true
+    egg.crack.visible = false
+    egg.cap.visible = true
+    applyCapPose(egg.cap, openPose)
+    syncEggBack(egg)
+    return
+  }
+
+  if (animal.state === 'fleeing') {
+    const returnT = smooth((animal.pose.y - rimY) / (hideY - rimY))
+    egg.whole.visible = false
+    egg.lower.visible = true
+    egg.crack.visible = returnT > 0.8
+    egg.cap.visible = true
+    applyCapPose(egg.cap, lerpPose(openPose, hiddenPose, returnT))
+    syncEggBack(egg)
+    return
+  }
+
+  const openT = smooth((hideY - animal.pose.y) / (hideY - peekY))
+  const outT = smooth((peekY - animal.pose.y) / (peekY - rimY))
+
+  if (egg.variant === 'cartoon' && openT <= 0.02 && outT === 0) {
+    egg.whole.visible = true
+    egg.lower.visible = false
+    egg.cap.visible = false
+    egg.crack.visible = true
+    syncEggBack(egg)
+    return
+  }
+
+  egg.whole.visible = false
+  egg.lower.visible = true
+  egg.crack.visible = openT < 0.2 && outT === 0
+  egg.cap.visible = true
+  const fromHiddenToPeek = lerpPose(hiddenPose, peekPose, openT)
+  applyCapPose(egg.cap, lerpPose(fromHiddenToPeek, openPose, outT))
+  syncEggBack(egg)
+}
+
 export function createIncubator(): Incubator {
   const actors = new Container({ label: 'actors' })
   const slots = {} as Record<EggId, Container>
-  for (const id of EGG_IDS) slots[id] = new Container({ label: `slot:${id}` })
+  const runtimes = {} as Record<EggId, EggRuntime>
+  for (const id of EGG_IDS) {
+    slots[id] = new Container({ label: `slot:${id}` })
+    runtimes[id] = { hatchTime: 0 }
+  }
 
   const strawWisps: Swaying[] = []
   const backPlane = drawBack()
@@ -679,7 +848,7 @@ export function createIncubator(): Incubator {
   )
 
   let time = 0
-  const tick = (dt: number, _animals?: readonly DecorAnimal[]) => {
+  const tick = (dt: number, animals?: readonly DecorAnimal[]) => {
     time += dt
     for (const { node, phase } of strawWisps) {
       node.rotation = oscillate(AMBIENT.straw, time, phase)
@@ -691,6 +860,13 @@ export function createIncubator(): Incubator {
       lamp.halo.alpha = 1 + pulse * 1.2
       lamp.floorGlow.scale.set(1 + pulse * 0.5)
       lamp.floorGlow.alpha = 1 + pulse
+    }
+    if (animals) {
+      for (const animal of animals) {
+        const eggId = resolveEggId(animal.id)
+        if (!eggId) continue
+        updateEgg(eggs.eggs[eggId], HIDEOUTS[eggId], runtimes[eggId], animal, dt)
+      }
     }
   }
 
