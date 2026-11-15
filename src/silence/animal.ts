@@ -5,6 +5,10 @@
 //
 // Positions are in world units (see geometry.ts): `x, y` is the point between the feet, on the
 // ground. An animal drawn facing right has its head on the right.
+//
+// [SPEC-13.2.3] An animal that flies (bees, butterflies) also has a height above the ground: `x, y`
+// stays the point of the ground right under it, which sets its depth (drawing order) and its
+// shadow; the drawing goes up by the height. Animals that walk or hop keep a height of zero.
 
 /** [SPEC-9.3] Hidden; peeks out of its hideout; comes closer; settled in the decor; on alert
  *  (frozen); running back to its hideout. */
@@ -28,6 +32,28 @@ export interface Waypoint {
   y: number
   /** 0: standing; 1: lying or curled up, as low as the animal goes. */
   crouch: number
+  /** [SPEC-13.2.3] Height of the feet above the ground point `x, y`, world units, zero or more.
+   *  Zero when absent. */
+  height?: number
+}
+
+/** [SPEC-13.2.4] [SPEC-8.5] Fastest wing beat allowed, beats per second: slow and wide, never a
+ *  flicker. */
+export const MAX_WING_RATE = 3
+
+/** [SPEC-13.2.3] [SPEC-13.2.4] How an animal that flies moves its wings and weaves. */
+export interface Flight {
+  /** Wing beats per second while flying, at most `MAX_WING_RATE`. */
+  wingRate: number
+  /** Width of the side-to-side weaving while approaching, world units, on each side of the path.
+   *  None while fleeing: the flight back is direct. */
+  weave: number
+  /** World units travelled per weave, there and back. */
+  weaveLength: number
+  /** [SPEC-13.2.2] Wing beat once settled (0: wings folded and still) and its rate, beats per
+   *  second, at most `MAX_WING_RATE`: the butterflies open and close their wings slowly. */
+  restBeat: number
+  restRate: number
 }
 
 export interface AnimalSpec<Id extends string = string, Hideout extends string = string> {
@@ -58,11 +84,13 @@ export interface AnimalSpec<Id extends string = string, Hideout extends string =
   speed: { peek: number; walk: number; flee: number }
   /** Seconds spent peeking before coming out. */
   peekPause: number
-  /** Hops (in the forest: rabbit, squirrel, owl) or walks. */
-  gait: 'hop' | 'walk'
+  /** Hops (in the forest: rabbit, squirrel, owl), walks or flies [SPEC-9.8] [SPEC-13.2.3]. */
+  gait: 'hop' | 'walk' | 'fly'
+  /** Wings and weaving of an animal that flies: required with `gait: 'fly'`, ignored otherwise. */
+  flight?: Flight
   /** World units travelled per stride or per hop. */
   strideLength: number
-  /** Height of a hop, or of the bob of a walk, in world units. */
+  /** Height of a hop, or of the bob of a walk, or of the float of a flight, in world units. */
   bounce: number
   /** Crouch added while sleeping (lying down) and while grazing. */
   sleepCrouch: number
@@ -82,9 +110,10 @@ export function pathLengths(path: readonly Waypoint[]): number[] {
   return at
 }
 
-/** Point of the path at distance `s` from the hiding place, with the crouch there and the
- *  direction of the segment (unit vector, towards the place in the decor). */
-export function pointAt(path: readonly Waypoint[], lengths: readonly number[], s: number): Waypoint & { dx: number; dy: number } {
+/** Point of the path at distance `s` from the hiding place, with the crouch and the height there
+ *  and the direction of the segment on the ground (unit vector, towards the place in the decor).
+ *  Lengths are measured on the ground. */
+export function pointAt(path: readonly Waypoint[], lengths: readonly number[], s: number): Required<Waypoint> & { dx: number; dy: number } {
   const last = path.length - 1
   let i = 1
   while (i < last && lengths[i]! < s) i++
@@ -96,6 +125,7 @@ export function pointAt(path: readonly Waypoint[], lengths: readonly number[], s
     x: a.x + (b.x - a.x) * t,
     y: a.y + (b.y - a.y) * t,
     crouch: a.crouch + (b.crouch - a.crouch) * t,
+    height: (a.height ?? 0) + ((b.height ?? 0) - (a.height ?? 0)) * t,
     dx: length > 0 ? (b.x - a.x) / length : 0,
     dy: length > 0 ? (b.y - a.y) / length : 0,
   }

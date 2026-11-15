@@ -22,6 +22,14 @@ describe('card of an activity of silence [SPEC-9.6] [SPEC-9.8]', () => {
     expect(slider?.label).toBe('Durée de calme pour que les huit animaux soient là')
   })
 
+  it('takes the sentence of the activity for the total duration when it gives one [SPEC-13.1.1]', () => {
+    const label = 'Durée de calme pour que les abeilles et les papillons soient là'
+    const own = silenceManifest({ id: 'essai', title: 'Essai', thumbnail: 'essai.svg', durationLabel: label })
+    expect(own.settings.find((s) => s.id === SETTING.totalS)?.label).toBe(label)
+    // [SPEC-9.6] The zones keep « les animaux ».
+    expect(own.soundZones).toEqual(manifest.soundZones)
+  })
+
   it('bounds the sensitivity from 2 to 80 dB, the total duration from 30 s to 5 min and the tolerance from 0 to 2 s', () => {
     const slider = (id: string) => manifest.settings.find((s) => s.id === id)
     expect(slider(SETTING.totalS)).toMatchObject({ type: 'slider', min: 30, max: 300, unit: 's' })

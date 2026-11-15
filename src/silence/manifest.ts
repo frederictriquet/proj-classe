@@ -1,5 +1,6 @@
-// [SPEC-4.1] [SPEC-9.6] [SPEC-9.8] Card of an activity of silence: animals come out when the class
-// is quiet and hide at the noise. The activity makes no sound; it listens to the microphone.
+// [SPEC-4.1] [SPEC-9.6] [SPEC-9.8] [SPEC-13.1.1] Card of an activity of silence: animals come out
+// when the class is quiet and hide at the noise. The activity makes no sound; it listens to the
+// microphone.
 //
 // [SPEC-9.6] The three settings, applied at once [SPEC-7.2]. Kept free of the calm logic so the
 // menu stays light: manifest.test.ts checks that the defaults are DEFAULT_CALM_SETTINGS and the
@@ -25,11 +26,15 @@ export interface SilenceCard {
   title: string
   /** URL of the menu thumbnail. */
   thumbnail: string
-  /** Number of animals, in French words, for the label of the total duration: « six ». */
-  animalCount: string
 }
 
-export function silenceManifest({ id, title, thumbnail, animalCount }: SilenceCard): AppManifest {
+/** Label of the total duration: either the number of animals, in French words (« six ») in the
+ *  common sentence, or a sentence of the activity's own [SPEC-13.1.1]. */
+export type SilenceDuration = { animalCount: string } | { durationLabel: string }
+
+export function silenceManifest(card: SilenceCard & SilenceDuration): AppManifest {
+  const { id, title, thumbnail } = card
+  const durationLabel = 'durationLabel' in card ? card.durationLabel : `Durée de calme pour que les ${card.animalCount} animaux soient là`
   return {
     id,
     title,
@@ -50,7 +55,7 @@ export function silenceManifest({ id, title, thumbnail, animalCount }: SilenceCa
       {
         type: 'slider',
         id: SETTING.totalS,
-        label: `Durée de calme pour que les ${animalCount} animaux soient là`,
+        label: durationLabel,
         min: 30,
         max: 300,
         step: 10,

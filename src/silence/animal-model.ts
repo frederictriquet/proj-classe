@@ -10,21 +10,33 @@
 // - `peeking`: comes to the edge of its hideout and stays there.
 // - `approaching` or `settled`: peeks, waits a moment, comes out, settles at its place.
 // A flight always goes back to the hideout before the animal can come out again.
+//
+// [SPEC-13.2.3] An animal that flies (`gait: 'fly'`) follows the height of its path. It is in the
+// air between its peek point and its place: wings beating [SPEC-13.2.4], legs still, floating
+// gently, weaving from side to side while approaching and flying straight back when fleeing. On
+// alert in the air it hovers, wings still beating; perched (in its hideout, peeking, settled) its
+// wings fold and stop, except the slow beat of a settled butterfly [SPEC-13.2.2], and on alert it
+// freezes, wings included.
 import {
   ACTIVITIES,
+  MAX_WING_RATE,
   pathLengths,
   pointAt,
   type Activity,
   type AnimalSpec,
   type AnimalState,
+  type Flight,
 } from './animal'
 import { seededRandom } from './random'
 
 /** Values the drawing applies to the pieces of an animal. */
 export interface Pose {
-  /** Feet position on the path, world units. */
+  /** Feet position on the ground, world units: sets the depth and the shadow. */
   x: number
   y: number
+  /** [SPEC-13.2.3] Height of the feet above the ground point, world units: the drawing goes up by
+   *  it. Always 0 for an animal that walks or hops. */
+  height: number
   /** -1 facing left, 1 facing right; between the two while turning round. */
   facing: number
   /** Height of the body above the feet during a hop or a stride, world units (negative: up). */
@@ -58,10 +70,25 @@ export interface Pose {
   chew: number
   /** Opacity of the shadow on the ground: 0 inside the hideout, 1 in the open. */
   shadow: number
+  /** [SPEC-13.2.3] Size of the shadow on the ground, also applied to its opacity: 1 on the ground,
+   *  smaller and paler as the animal goes up. */
+  shadowScale: number
+  /** [SPEC-13.2.4] Phase of the wing beat, radians, and its amplitude: 0 wings folded, 1 full
+   *  beat. Always 0 for an animal that walks or hops. */
+  wingPhase: number
+  wingBeat: number
 }
 
 /** Seconds an animal stays hidden after a flight. */
 export const RECOVER_TIME = 1.5
+/** [SPEC-13.2.3] Height, world units, at which the shadow of a flying animal is half its size. */
+export const SHADOW_HALF_HEIGHT = 250
+/** [SPEC-13.2.3] Floats per second of an animal in the air: slow [SPEC-8.5]. */
+const FLOAT_RATE = 0.6
+/** Easing rate of the wing beat amplitude, per second; below `WING_STILL` the wings, and the
+ *  float, of a perched animal stop. */
+const WING_RATE = 4
+const WING_STILL = 0.002
 /** Seconds of a blink. */
 export const BLINK_TIME = 0.24
 /** Seconds to turn round at a calm pace, and when fleeing. */
@@ -130,6 +157,17 @@ export class AnimalModel {
   private breathPhase = 0
   private scratchPhase = 0
   private chewPhase = 0
+  /** [SPEC-13.2.3] Flying only: share of the float (0 perched, 1 in the air), share of the weave,
+   *  float phase, wing beat phase, amplitude and rate. */
+  private readonly flight: Flight | undefined
+  private floatShare = 0
+  private weaveShare = 0
+  private floatPhase = 0
+  private wingPhase = 0
+  private wingBeat = 0
+  private wingRate = 0
+  /** Unit vector on the ground from the peek point to the place: the weave goes across it. */
+  private readonly across: { dx: number; dy: number }
   private nextBlink: number
   /** Time since the start of the current blink, or -1. */
   private blinkTime = -1
@@ -146,6 +184,16 @@ export class AnimalModel {
     this.random = seededRandom(seed)
     this.facing = spec.frontal ? 1 : spec.hideFacing
     this.nextBlink = 1 + 3 * this.random()
+    if (spec.gait === 'fly' && !spec.flight) throw new Error(`« ${spec.id} » vole sans réglages de vol`)
+    this.flight = spec.gait === 'fly' ? spec.flight : undefined
+    if (this.flight && Math.max(this.flight.wingRate, this.flight.restRate) > MAX_WING_RATE)
+      throw new Error(`« ${spec.id} » bat des ailes plus de ${MAX_WING_RATE} fois par seconde`)
+    // Taken from the seed, not from `random`, so that animals that walk keep the same draws.
+    this.floatPhase = seed * 2.399
+    const peek = spec.path[spec.peekIndex]!
+    const spot = spec.path[spec.path.length - 1]!
+    const run = Math.hypot(spot.x - peek.x, spot.y - peek.y)
+    this.across = run > 0 ? { dx: (spot.x - peek.x) / run, dy: (spot.y - peek.y) / run } : { dx: 1, dy: 0 }
     const start = pointAt(spec.path, this.lengths, 0)
     this.eased = {
       crouch: start.crouch,
@@ -163,6 +211,7 @@ export class AnimalModel {
     this.pose = {
       x: start.x,
       y: start.y,
+      height: start.height,
       facing: this.facing,
       bob: 0,
       crouch: start.crouch,
@@ -180,6 +229,9 @@ export class AnimalModel {
       scratchPhase: 0,
       chew: 0,
       shadow: 0,
+      shadowScale: 1 / (1 + start.height / SHADOW_HALF_HEIGHT),
+      wingPhase: 0,
+      wingBeat: 0,
     }
   }
 
@@ -431,14 +483,22 @@ export class AnimalModel {
 
     // Legs: the phase follows the distance travelled; the swing follows the speed.
     const speed = Math.abs(this.v)
-    // Running, the strides get longer rather than faster: no flickering legs [SPEC-8.5].
-    const strideLength = spec.strideLength * (1 + 0.5 * Math.max(0, speed / spec.speed.walk - 1))
-    this.gait += ((speed * dt) / strideLength) * 2 * Math.PI
-    this.stride = ease(this.stride, Math.min(1.3, speed / spec.speed.walk), 10, dt)
-    const bob =
-      spec.gait === 'hop'
-        ? -spec.bounce * this.stride * Math.abs(Math.sin(this.gait / 2))
-        : -spec.bounce * this.stride * Math.abs(Math.sin(this.gait))
+    let bob: number
+    let height = here.height
+    let x = here.x
+    if (this.flight) {
+      // [SPEC-13.2.3] Legs still in the air; the animal floats and weaves instead.
+      ;({ bob, height, x } = this.fly(dt, here, rate))
+    } else {
+      // Running, the strides get longer rather than faster: no flickering legs [SPEC-8.5].
+      const strideLength = spec.strideLength * (1 + 0.5 * Math.max(0, speed / spec.speed.walk - 1))
+      this.gait += ((speed * dt) / strideLength) * 2 * Math.PI
+      this.stride = ease(this.stride, Math.min(1.3, speed / spec.speed.walk), 10, dt)
+      bob =
+        spec.gait === 'hop'
+          ? -spec.bounce * this.stride * Math.abs(Math.sin(this.gait / 2))
+          : -spec.bounce * this.stride * Math.abs(Math.sin(this.gait))
+    }
 
     // Facing: the direction of travel; at rest, towards the open.
     if (!spec.frontal) {
@@ -476,8 +536,9 @@ export class AnimalModel {
     this.scratchPhase += dt * 2 * Math.PI * 3
     this.chewPhase += dt * 2 * Math.PI * 1.6
 
-    pose.x = here.x
+    pose.x = x
     pose.y = here.y
+    pose.height = height
     pose.facing = this.facing
     pose.bob = bob
     pose.crouch = eased.crouch
@@ -494,6 +555,49 @@ export class AnimalModel {
     pose.scratch = eased.scratch
     pose.scratchPhase = this.scratchPhase
     pose.chew = 0.06 * eased.chew * Math.sin(this.chewPhase)
-    pose.shadow = clamp((this.s - this.sExit) / 40, 0, 1)
+    // Flying animals flee faster [SPEC-13.2.3]: their shadow fades over a longer way, so that it
+    // does not flick on or off.
+    pose.shadow = clamp((this.s - this.sExit) / (this.flight ? 120 : 40), 0, 1)
+    pose.shadowScale = 1 / (1 + height / SHADOW_HALF_HEIGHT)
+    pose.wingPhase = this.wingPhase
+    pose.wingBeat = this.wingBeat
+  }
+
+  /** [SPEC-13.2.3] [SPEC-13.2.4] Float, weave and wings of an animal that flies: the offset of its
+   *  drawing, its height and its position across the path. */
+  private fly(dt: number, here: ReturnType<typeof pointAt>, rate: number): { bob: number; height: number; x: number } {
+    const flight = this.flight!
+    const { spec, s, sPeek, sSpot } = this
+    const state = this.current
+    const inAir = s > sPeek && s < sSpot
+    const frozen = state === 'alert' && !inAir
+
+    this.floatShare = ease(this.floatShare, inAir ? 1 : 0, RATE.calm, dt)
+    if (!inAir && this.floatShare < WING_STILL) this.floatShare = 0
+    this.floatPhase += dt * 2 * Math.PI * FLOAT_RATE
+    // Hovering on alert keeps the weave where it is: no drift while frozen in the air. Perched,
+    // the weave is zero anyway (see below): a flight from there is straight from the start.
+    if (!inAir) this.weaveShare = 0
+    else if (state !== 'alert') this.weaveShare = ease(this.weaveShare, state === 'approaching' ? 1 : 0, rate, dt)
+
+    if (!frozen) {
+      const posed = state === 'settled' && s === sSpot
+      const beat = inAir ? 1 : posed ? flight.restBeat : 0
+      this.wingRate = ease(this.wingRate, inAir ? flight.wingRate : flight.restRate, WING_RATE, dt)
+      this.wingBeat = ease(this.wingBeat, beat, WING_RATE, dt)
+      if (beat === 0 && this.wingBeat < WING_STILL) this.wingBeat = 0
+      if (this.wingBeat > 0) this.wingPhase += dt * 2 * Math.PI * this.wingRate
+    }
+    this.stride = 0
+
+    // The weave is zero at the peek point and at the place, so that the animal leaves and lands
+    // exactly there; it goes across the line between them, on the screen.
+    const along = sSpot > sPeek ? clamp((s - sPeek) / (sSpot - sPeek), 0, 1) : 0
+    const weave = this.weaveShare * flight.weave * Math.sin(Math.PI * along) * Math.sin((2 * Math.PI * (s - sPeek)) / flight.weaveLength)
+    return {
+      bob: -spec.bounce * this.floatShare * (0.5 + 0.5 * Math.sin(this.floatPhase)),
+      height: Math.max(0, here.height - weave * this.across.dx),
+      x: here.x - weave * this.across.dy,
+    }
   }
 }

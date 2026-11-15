@@ -11,11 +11,11 @@ import { Container, Graphics } from 'pixi.js'
 import { paperShadow, type PaperColors } from '../art/palette'
 import type { AnimalSpec } from './animal'
 import type { Pose } from './animal-model'
+import { PAPER_SHADOW } from './overlap'
 
 export type Draw = (g: Graphics) => Graphics
 
-/** Offset of the paper shadow of a piece, smaller than the decor's: the pieces are smaller. */
-const SHADOW = { x: 5, y: 7 }
+const SHADOW = PAPER_SHADOW
 /** Opacity of the shadow on the ground under an animal in the open. */
 const GROUND_SHADOW_ALPHA = 0.16
 
@@ -39,6 +39,15 @@ interface Ear {
   rest: number
   up: number
   back: number
+}
+
+/** [SPEC-13.2.4] A wing, hung at its root like an ear: folded along the body when still, beating
+ *  between `up` and `down` (rotations, radians) in flight. */
+interface Wing {
+  node: Container
+  folded: number
+  up: number
+  down: number
 }
 
 interface Leg {
@@ -65,6 +74,8 @@ export interface Rig {
   neck?: { node: Container; gain: number }
   head: { node: Container; gain: number }
   ears: Ear[]
+  /** [SPEC-13.2.3] Animals that fly. */
+  wings?: Wing[]
   eyes: Eye[]
   legs: Leg[]
   tail?: { node: Container; rest: number }
@@ -177,11 +188,13 @@ export function drawAnimal(spec: AnimalSpec, rig: RigFactory, colors: PaperColor
     apply(pose) {
       root.position.set(pose.x, pose.y)
       const facing = spec.frontal ? 1 : pose.facing
-      // The shadow on the ground stays on the ground: it does not hop.
-      ground.alpha = spec.frontal ? 0 : GROUND_SHADOW_ALPHA * pose.shadow
+      // The shadow on the ground stays on the ground: it does not hop, nor fly [SPEC-13.2.3]; it
+      // gets smaller and paler as the animal goes up.
+      ground.alpha = spec.frontal ? 0 : GROUND_SHADOW_ALPHA * pose.shadow * pose.shadowScale
+      ground.scale.set(pose.shadowScale)
       ground.x = ((left + right) / 2) * facing
       figure.scale.x = facing
-      figure.y = pose.bob
+      figure.y = pose.bob - pose.height
       // Light comes from the top left whatever the facing: the paper shadows change side while
       // the animal is seen edge-on.
       const now = facing < 0 ? -1 : 1
@@ -206,6 +219,12 @@ export function drawAnimal(spec: AnimalSpec, rig: RigFactory, colors: PaperColor
       for (const ear of pieces.ears) {
         ear.node.rotation = pose.ears >= 0 ? ear.rest + pose.ears * (ear.up - ear.rest) : ear.rest - pose.ears * (ear.back - ear.rest)
         ear.node.scale.y = 1 + 0.12 * Math.max(0, pose.ears)
+      }
+      // [SPEC-13.2.4] Folded at a beat of 0; between `down` and `up` at a beat of 1.
+      for (const wing of pieces.wings ?? []) {
+        const middle = (wing.up + wing.down) / 2
+        const half = (wing.up - wing.down) / 2
+        wing.node.rotation = wing.folded + pose.wingBeat * (middle - wing.folded + half * Math.sin(pose.wingPhase))
       }
       for (const eye of pieces.eyes) applyEye(eye, pose.eyeOpen, pose.eyeWide, pose.look)
       if (pieces.tail) pieces.tail.node.rotation = pieces.tail.rest + pose.tail

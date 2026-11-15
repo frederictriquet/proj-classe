@@ -1,30 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { pathLengths, pointAt, type AnimalSpec } from '../../silence/animal'
-import { contains, intersects, SAFE_ZONE, type Rect } from '../../silence/geometry'
+import { contains, SAFE_ZONE } from '../../silence/geometry'
+import { depthCrossings, drawingBox, restingPoints } from '../../silence/overlap'
 import { ANIMAL_IDS, ANIMALS, rampY } from './animal-data'
 import { HIDEOUT_IDS } from './layout'
-
-/** Paper shadow of a piece, added to the extent of a drawing (see src/silence/rig.ts). */
-const SHADOW = { x: 5, y: 7 }
-
-/** Box of the drawing with its feet at (x, y), facing one way or, if unknown, either way. */
-function box(spec: AnimalSpec, x: number, y: number, facing?: 1 | -1): Rect {
-  const { left, right, top } = spec.extent
-  const l = facing === 1 ? left : facing === -1 ? -right : Math.min(left, -right)
-  const r = facing === 1 ? right : facing === -1 ? -left : Math.max(right, -left)
-  return { x: x + l, y: y + top, width: r - l + SHADOW.x, height: -top + SHADOW.y }
-}
-
-/** Where an animal stays still and is sorted with the others: its place and, when it hides in the
- *  actors layer (behind the foreground), its hiding and peeking points. */
-function restingPoints(spec: AnimalSpec): { x: number; y: number; facing: 1 | -1 }[] {
-  const place = spec.path[spec.path.length - 1]!
-  const points = [{ x: place.x, y: place.y, facing: spec.spotFacing }]
-  if (!spec.usesSlot) {
-    for (const i of [0, spec.peekIndex]) points.push({ x: spec.path[i]!.x, y: spec.path[i]!.y, facing: spec.hideFacing })
-  }
-  return points
-}
 
 describe('animals [SPEC-12.2]', () => {
   it('come out from the least to the most timid [SPEC-9.4.1]', () => {
@@ -52,9 +30,9 @@ describe('animals [SPEC-12.2]', () => {
     const spec = ANIMALS[id]
     expect(spec.id).toBe(id)
     expect(0 < spec.peekIndex && spec.peekIndex < spec.exitIndex && spec.exitIndex < spec.path.length).toBe(true)
-    for (const p of spec.path) expect(contains(SAFE_ZONE, box(spec, p.x, p.y), 0), `${p.x},${p.y}`).toBe(true)
+    for (const p of spec.path) expect(contains(SAFE_ZONE, drawingBox(spec, p.x, p.y), 0), `${p.x},${p.y}`).toBe(true)
     const place = spec.path[spec.path.length - 1]!
-    expect(contains(SAFE_ZONE, box(spec, place.x, place.y, spec.spotFacing), 20)).toBe(true)
+    expect(contains(SAFE_ZONE, drawingBox(spec, place.x, place.y, spec.spotFacing), 20)).toBe(true)
     expect(Math.min(...spec.path.map((p) => p.crouch))).toBeGreaterThanOrEqual(0)
     expect(Math.max(...spec.path.map((p) => p.crouch))).toBeLessThanOrEqual(1)
   })
@@ -66,8 +44,8 @@ describe('animals [SPEC-12.2]', () => {
       for (const b of ANIMAL_IDS.slice(i + 1)) {
         const pa = restingPoints(ANIMALS[a])[0]!
         const pb = restingPoints(ANIMALS[b])[0]!
-        const ra = box(ANIMALS[a], pa.x, pa.y, pa.facing)
-        const rb = box(ANIMALS[b], pb.x, pb.y, pb.facing)
+        const ra = drawingBox(ANIMALS[a], pa.x, pa.y, pa.facing)
+        const rb = drawingBox(ANIMALS[b], pb.x, pb.y, pb.facing)
         const overlap =
           Math.max(0, Math.min(ra.x + ra.width, rb.x + rb.width) - Math.max(ra.x, rb.x)) *
           Math.max(0, Math.min(ra.y + ra.height, rb.y + rb.height) - Math.max(ra.y, rb.y))
@@ -76,28 +54,8 @@ describe('animals [SPEC-12.2]', () => {
     }
   })
 
-  // Animals in the open are drawn in the order of their feet on the screen. If an animal walking
-  // its path passed the depth of a still one while overlapping it, one would jump in front of
-  // the other.
+  // Animals in the open are drawn in the order of their feet on the screen: see overlap.ts.
   it.each(ANIMAL_IDS)('%s: never crosses the depth of a still animal while overlapping it', (id) => {
-    const spec = ANIMALS[id]
-    const lengths = pathLengths(spec.path)
-    const end = lengths[lengths.length - 1]!
-    const samples = []
-    // From the exit point: before it, the animal is in its hideout's slot (or hidden by the foreground).
-    for (let s = spec.usesSlot ? lengths[spec.exitIndex]! : 0; s <= end; s += 1) samples.push(pointAt(spec.path, lengths, s))
-    for (const other of ANIMAL_IDS) {
-      if (other === id) continue
-      for (const still of restingPoints(ANIMALS[other])) {
-        const stillBox = box(ANIMALS[other], still.x, still.y, still.facing)
-        for (let i = 1; i < samples.length; i++) {
-          const a = samples[i - 1]!
-          const b = samples[i]!
-          if (Math.sign(a.y - still.y) === Math.sign(b.y - still.y)) continue
-          const facing = Math.abs(b.dx) > 0.25 ? (Math.sign(b.dx) as 1 | -1) : undefined
-          expect(intersects(box(spec, b.x, b.y, facing), stillBox), `${id} at ${b.x.toFixed(0)},${b.y.toFixed(0)} / ${other}`).toBe(false)
-        }
-      }
-    }
+    expect(depthCrossings(ANIMALS, id)).toEqual([])
   })
 })

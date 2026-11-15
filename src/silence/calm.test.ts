@@ -107,6 +107,40 @@ describe('calm gauge and come-out times [SPEC-9.4.1]', () => {
     expect(Object.keys(output.targets)).toEqual([...eight])
   })
 
+  // [SPEC-13.2] The hive: fifteen bees, then two butterflies. The gaps, (totalS - 5) / 16, are not
+  // whole numbers of steps: each animal is called out at the first step past its time.
+  for (const [totalS, gap] of [
+    [30, 1.5625],
+    [90, 5.3125],
+    [300, 18.4375],
+  ] as const) {
+    it(`calls seventeen animals out in order, from 5 s to ${totalS} s, one every ${gap} s [SPEC-13.2] [SPEC-9.8]`, () => {
+      const hive = [...Array.from({ length: 15 }, (_, i) => `bee${i + 1}`), 'butterfly1', 'butterfly2']
+      const logic = new CalmLogic(hive)
+      const settings = { ...DEFAULT_CALM_SETTINGS, totalS }
+      const calledAt: number[] = []
+      let output = logic.step(QUIET, 0, settings)
+      for (let i = 1; i <= totalS / DT; i++) {
+        output = logic.step(QUIET, DT, settings)
+        const out = hive.filter((id) => output.targets[id] === 'settled').length
+        expect(hive.slice(0, out).every((id) => output.targets[id] === 'settled')).toBe(true)
+        while (calledAt.length < out) calledAt.push(i * DT)
+        if (i * DT < totalS) expect(output.allSettled).toBe(false)
+      }
+      const times = comeOutTimes(totalS, hive.length)
+      // Regular gaps from the first animal to the last.
+      expect(times.slice(1).map((t, i) => t - times[i]!)).toEqual(Array.from({ length: 16 }, () => gap))
+      expect(calledAt).toHaveLength(17)
+      expect(calledAt[0]).toBe(FIRST_OUT_S)
+      expect(calledAt[16]).toBe(totalS)
+      for (const [i, t] of times.entries()) {
+        expect(calledAt[i]! - t, hive[i]).toBeGreaterThanOrEqual(0)
+        expect(calledAt[i]! - t, hive[i]).toBeLessThan(DT)
+      }
+      expect(output.allSettled).toBe(true)
+    })
+  }
+
   for (const totalS of [90, 30]) {
     it(`continuous silence calls the animals out in order, the sixth at ${totalS} s`, () => {
       const settings = { ...DEFAULT_CALM_SETTINGS, totalS }
