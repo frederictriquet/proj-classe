@@ -6,7 +6,7 @@ import type { AppManifest, AppModule } from './types'
  * [SPEC-4.3] The only list to complete to add a sub-application: the name of its folder under
  * `src/apps/`, in menu order. The folder holds `manifest.ts` and `app.ts` (see `types.ts`).
  */
-export const APP_IDS: readonly string[] = ['demo']
+export const APP_IDS: readonly string[] = ['foret', 'foret-galerie', 'demo']
 
 export interface AppEntry {
   manifest: AppManifest
@@ -37,6 +37,14 @@ export function manifestProblems(manifest: AppManifest): string[] {
     const reason = invalidReason(setting, setting.default)
     if (reason) problems.push(`réglage « ${setting.id} » : valeur par défaut invalide (${reason})`)
   }
+  // [SPEC-7.5] A threshold is drawn on the live level, shown only for a microphone app.
+  for (const threshold of manifest.soundThresholds ?? []) {
+    const setting = manifest.settings.find((s) => s.id === threshold.setting)
+    if (setting?.type !== 'slider')
+      problems.push(`seuil « ${threshold.label} » : « ${threshold.setting} » n'est pas un curseur déclaré`)
+  }
+  if ((manifest.soundThresholds ?? []).length > 0 && !manifest.needs.includes('microphone'))
+    problems.push('seuils sonores déclarés sans le besoin « microphone »')
   return problems
 }
 

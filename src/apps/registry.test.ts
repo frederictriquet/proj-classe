@@ -56,6 +56,17 @@ describe('buildRegistry', () => {
     expect(() => buildRegistry(['a'], manifests, apps, true)).toThrow(/valeur par défaut/)
     expect(manifestProblems(bad)).toHaveLength(2)
   })
+
+  it('rejects sound thresholds on an undeclared slider or without the microphone [SPEC-7.5]', () => {
+    const slider = { type: 'slider', id: 's', label: 'S', min: 0, max: 10, step: 1, default: 5 } as const
+    const toggle = { type: 'toggle', id: 't', label: 'T', default: false } as const
+    const good = manifest('a', { needs: ['microphone'], settings: [slider], soundThresholds: [{ label: 'A', setting: 's', offsetDb: 6 }] })
+    expect(manifestProblems(good)).toEqual([])
+    const onToggle = manifest('a', { needs: ['microphone'], settings: [toggle], soundThresholds: [{ label: 'A', setting: 't' }] })
+    expect(manifestProblems(onToggle)).toEqual(["seuil « A » : « t » n'est pas un curseur déclaré"])
+    const noMic = manifest('a', { settings: [slider], soundThresholds: [{ label: 'A', setting: 's' }] })
+    expect(manifestProblems(noMic)).toEqual(['seuils sonores déclarés sans le besoin « microphone »'])
+  })
 })
 
 describe('APP_REGISTRY', () => {

@@ -81,6 +81,8 @@ SPEC-3.9 Version défectueuse et retour arrière
 - 8.1 Public : 4-5 ans. Style papier découpé : aplats de couleur, formes rondes, grands yeux, pas de détail fin, pas de texte.
 - 8.2 Lisible de loin sur un vidéoprojecteur : contrastes francs, pas de teintes pâles voisines, éléments importants de grande taille.
 - 8.3 Palette limitée (8 à 10 couleurs), définie une fois dans un module partagé et consignée ici par la première tâche graphique.
+- 8.3.1 Palette retenue (dix couleurs, `src/art/palette.ts`) : encre `#1B1B1B` (pupilles, trous, ombres), crème `#FBF6E9` (nuages, yeux, ventres, rayons), soleil `#F4C430` (soleil, fleurs, yeux de la chouette, lucioles), ciel `#8ED1F0`, sarcelle `#5E9E9A` (arbres lointains), herbe `#7CC36A` (sol de la clairière), forêt `#2E6B3F` (feuillages, buisson, lisière, fougères), écorce `#7A4A26` (troncs, branche, terre, pelage sombre), fauve `#D9A066` (bois coupé, pelage clair, faces), orange `#D9622B` (renard, écureuil).
+- 8.3.2 Aucune autre teinte n'est dessinée : ombres du papier, lumière et profondeur utilisent ces couleurs en transparence. Le fauve est trop proche de l'herbe en luminosité pour s'y poser seul.
 - 8.4 Graphismes produits en code (SVG écrits à la main ou formes PixiJS). Ressources externes admises seulement sous licence CC0 ou équivalente, listées avec leur source et leur licence dans `CREDITS.md`.
 - 8.5 Animations douces et lentes. Rien de clignotant ni de brusque, sauf la fuite des animaux.
 - 8.6 L'image s'adapte à tout format d'écran (16:9, 16:10, 4:3) sans déformation ni bandes : le décor s'étend, les éléments importants restent dans une zone centrale sûre.

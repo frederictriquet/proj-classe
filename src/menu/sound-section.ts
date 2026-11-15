@@ -1,6 +1,8 @@
 // [SPEC-7.5] [SPEC-6.3] [SPEC-6.6] Live sound level and « Calibrer » button, shown in the settings
-// panel of an app that declares the `microphone` need. It only sends HostCommand and reads
-// HostState and the level stream, so it also works from the control screen [SPEC-5.5].
+// panel of an app that declares the `microphone` need, with the app's thresholds marked on the
+// level [SPEC-9.6]. It only sends HostCommand and reads HostState and the level stream, so it
+// also works from the control screen [SPEC-5.5].
+import type { AppManifest, SettingValues, SoundThreshold } from '../apps/types'
 import type { SoundReading, SoundStatus } from '../audio/sound-service'
 import { DBFS_FLOOR } from '../audio/level'
 import type { HostLink } from '../host/protocol'
@@ -29,8 +31,33 @@ export function calibrationText(status: SoundStatus): string {
   return `${ambient} (calibré le ${dateFormat.format(new Date(status.calibratedAt))}).`
 }
 
+/** A threshold placed on the level [SPEC-7.5]. */
+export interface ThresholdMark {
+  label: string
+  /** dB above the ambient noise. */
+  aboveDb: number
+  /** Level in dBFS: ambient noise + `aboveDb`. */
+  db: number
+}
+
+/** [SPEC-7.5] [SPEC-9.6] Where the app's thresholds lie with its current settings and the
+ *  ambient noise in use. */
+export function thresholdMarks(thresholds: readonly SoundThreshold[], values: SettingValues, ambientDb: number): ThresholdMark[] {
+  return thresholds.map((threshold) => {
+    const value = values[threshold.setting]
+    if (typeof value !== 'number') throw new Error(`Seuil « ${threshold.label} » : réglage « ${threshold.setting} » sans valeur numérique`)
+    const aboveDb = value + (threshold.offsetDb ?? 0)
+    return { label: threshold.label, aboveDb, db: ambientDb + aboveDb }
+  })
+}
+
+/** Legend of the marks, for example « Alerte : 6 dB au-dessus du bruit ambiant (−54 dB) ». */
+export function thresholdText(mark: ThresholdMark): string {
+  return `${mark.label} : ${dbFormat.format(mark.aboveDb)} dB au-dessus du bruit ambiant (${formatDb(mark.db)})`
+}
+
 /** Builds the section; `dispose` stops the live level and gives the microphone back. */
-export function soundSection(link: HostLink): { element: HTMLElement; dispose: () => void } {
+export function soundSection(link: HostLink, manifest: AppManifest): { element: HTMLElement; dispose: () => void } {
   const section = document.createElement('section')
   section.className = 'sound-section'
   const title = document.createElement('h3')
@@ -47,6 +74,20 @@ export function soundSection(link: HostLink): { element: HTMLElement; dispose: (
   const ambientMark = document.createElement('div')
   ambientMark.className = 'sound-bar-ambient'
   bar.append(fill, ambientMark)
+  // [SPEC-9.6] One mark per declared threshold, with its legend.
+  const thresholds = manifest.soundThresholds ?? []
+  const thresholdLines = thresholds.map((_, i) => {
+    const mark = document.createElement('div')
+    mark.className = `sound-bar-threshold sound-threshold-${i}`
+    bar.append(mark)
+    const line = document.createElement('li')
+    line.className = `sound-threshold-${i}`
+    return { mark, line }
+  })
+  const legend = document.createElement('ul')
+  legend.className = 'sound-thresholds'
+  legend.append(...thresholdLines.map((t) => t.line))
+  legend.hidden = thresholds.length === 0
 
   const values = document.createElement('p')
   values.className = 'sound-values'
@@ -83,7 +124,7 @@ export function soundSection(link: HostLink): { element: HTMLElement; dispose: (
     link.dispatch({ type: 'simulate-level', db: simulationInput.valueAsNumber })
   })
 
-  section.append(title, bar, values, calibration, help, calibrate, error, warning, simulation)
+  section.append(title, bar, legend, values, calibration, help, calibrate, error, warning, simulation)
 
   let status: SoundStatus | undefined
   const showReading = (reading: SoundReading) => {
@@ -112,8 +153,27 @@ export function soundSection(link: HostLink): { element: HTMLElement; dispose: (
     if (next.phase !== 'on') fill.style.width = '0%'
   }
 
+  // Moves with the settings and after a calibration.
+  let shownValues: SettingValues | undefined
+  let shownAmbient: number | undefined
+  const showThresholds = (values: SettingValues, ambientDb: number) => {
+    if (values === shownValues && ambientDb === shownAmbient) return
+    shownValues = values
+    shownAmbient = ambientDb
+    thresholdMarks(thresholds, values, ambientDb).forEach((mark, i) => {
+      const { mark: element, line } = thresholdLines[i]!
+      element.style.left = `${barPercent(mark.db)}%`
+      line.textContent = thresholdText(mark)
+    })
+  }
+
   const offState = link.subscribe((state) => {
     if (state.sound !== status) showStatus(state.sound)
+    const values = state.settings[manifest.id]
+    if (thresholds.length > 0) {
+      if (!values) throw new Error(`Réglages de « ${manifest.title} » absents de l'état de l'hôte`)
+      showThresholds(values, state.sound.ambientDb)
+    }
   })
   const offLevel = link.subscribeLevel(showReading)
   // The panel holds the microphone while it is open [SPEC-7.5] [SPEC-6.7].

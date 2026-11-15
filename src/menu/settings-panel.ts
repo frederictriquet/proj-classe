@@ -102,7 +102,7 @@ function panelContent(manifest: AppManifest, link: HostLink): PanelContent {
   reset.addEventListener('click', () => link.dispatch({ type: 'reset-settings', appId: manifest.id }))
   actions.append(reset)
   // [SPEC-7.5] Live level and « Calibrer » for an app that listens to the classroom.
-  const sound = manifest.needs.includes('microphone') ? soundSection(link) : undefined
+  const sound = manifest.needs.includes('microphone') ? soundSection(link, manifest) : undefined
 
   const unsubscribe = link.subscribe((state) => {
     const values = state.settings[manifest.id]

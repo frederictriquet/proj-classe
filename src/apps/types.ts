@@ -35,6 +35,18 @@ export interface ToggleSetting {
 }
 
 export type SettingDeclaration = SliderSetting | ToggleSetting
+
+/** [SPEC-7.5] [SPEC-9.6] A threshold of the app, marked on the live sound level of the settings
+ *  panel. It lies `offsetDb` above the value of the slider `setting`, itself in dB above the
+ *  ambient noise [SPEC-6.4]. */
+export interface SoundThreshold {
+  /** Name shown to the adult next to the mark, in French. */
+  label: string
+  /** Id of a declared slider whose value is in dB above the ambient noise. */
+  setting: string
+  /** Added to the slider's value, in dB. Default 0. */
+  offsetDb?: number
+}
 export type SettingValue = number | boolean
 /** Values of the declared settings of one app, keyed by setting id. */
 export type SettingValues = Record<string, SettingValue>
@@ -49,6 +61,8 @@ export interface AppManifest {
   thumbnail: string
   needs: readonly AppNeed[]
   settings: readonly SettingDeclaration[]
+  /** [SPEC-7.5] Thresholds marked on the live sound level; for an app with the `microphone` need. */
+  soundThresholds?: readonly SoundThreshold[]
   /** Listed on the menu only in development builds (`npm run dev`). */
   devOnly?: boolean
 }
