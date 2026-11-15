@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240">
+  <!-- [SPEC-4.5] [SPEC-8.1] [SPEC-8.3] [SPEC-15.4] [SPEC-15.5] Menu thumbnail of « Cohérence
+       cardiaque »: the big pink bubble with its halo in the evening sky, still stars, small rising
+       bubbles and mint hills. -->
+  <rect width="320" height="240" fill="#7E79C4"/>
+  <g fill="#FFF0A8">
+    <circle cx="26" cy="24" r="3"/>
+    <circle cx="70" cy="58" r="2"/>
+    <circle cx="98" cy="18" r="2.5"/>
+    <circle cx="226" cy="22" r="2.5"/>
+    <circle cx="262" cy="56" r="2"/>
+    <circle cx="296" cy="30" r="3"/>
+  </g>
+  <path d="M0 110 C96 98 192 124 320 110 L320 240 L0 240 Z" fill="#3A3255" opacity="0.18" transform="translate(0 -5)"/>
+  <path d="M0 110 C96 98 192 124 320 110 L320 240 L0 240 Z" fill="#9C94D8"/>
+  <!-- Small rising bubbles -->
+  <g fill="#FFF8EE" fill-opacity="0.16" stroke="#FFF8EE" stroke-opacity="0.5" stroke-width="2">
+    <circle cx="40" cy="150" r="7"/>
+    <circle cx="62" cy="96" r="4"/>
+    <circle cx="270" cy="132" r="6"/>
+    <circle cx="288" cy="78" r="4"/>
+  </g>
+  <!-- Big bubble with its halo -->
+  <g fill="#FFF8EE" opacity="0.1">
+    <circle cx="160" cy="100" r="78"/>
+    <circle cx="160" cy="100" r="68"/>
+    <circle cx="160" cy="100" r="60"/>
+  </g>
+  <circle cx="163" cy="104" r="52" fill="#3A3255" opacity="0.18"/>
+  <circle cx="160" cy="100" r="52" fill="#FFD3E1"/>
+  <circle cx="160" cy="100" r="50" fill="none" stroke="#F4A7BF" stroke-width="4"/>
+  <ellipse cx="138" cy="76" rx="16" ry="8" fill="#FFF8EE" opacity="0.9" transform="rotate(-40 138 76)"/>
+  <circle cx="153" cy="63" r="4" fill="#FFF8EE" opacity="0.9"/>
+  <!-- Mint hills -->
+  <path d="M0 206 C64 192 128 214 176 202 C224 192 280 210 320 200 L320 240 L0 240 Z" fill="#3A3255" opacity="0.18" transform="translate(0 -4)"/>
+  <path d="M0 206 C64 192 128 214 176 202 C224 192 280 210 320 200 L320 240 L0 240 Z" fill="#9ED9C0"/>
+  <path d="M0 222 C80 210 150 232 210 220 C260 212 296 226 320 218 L320 240 L0 240 Z" fill="#3A3255" opacity="0.18" transform="translate(0 -4)"/>
+  <path d="M0 222 C80 210 150 232 210 220 C260 212 296 226 320 218 L320 240 L0 240 Z" fill="#9ED9C0"/>
+</svg>
