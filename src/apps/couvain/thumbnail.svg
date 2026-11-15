@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240">
+  <!-- [SPEC-4.5] [SPEC-8.1] [SPEC-8.3] [SPEC-14.3] [SPEC-14.5] Menu thumbnail of « Couvain du
+       silence »: the wooden incubator crate, hanging heat lamps with their warm halo, straw nests
+       with cream eggs, a chick peeking under its shell cap, and a yellow chick by the seed feeder. -->
+  <defs>
+    <path id="egg" d="M0,-22 C9,-22 12,-14 12,-9 C12,-3 8,0 0,0 C-8,0 -12,-3 -12,-9 C-12,-14 -9,-22 0,-22 Z"/>
+  </defs>
+  <!-- Room wall and wooden crate back -->
+  <rect width="320" height="44" fill="#283848"/>
+  <rect x="0" y="40" width="320" height="74" fill="#5C3418"/>
+  <line x1="0" y1="64" x2="320" y2="64" stroke="#1B1B1B" stroke-width="2" opacity="0.28"/>
+  <line x1="0" y1="88" x2="320" y2="88" stroke="#1B1B1B" stroke-width="2" opacity="0.28"/>
+  <rect x="0" y="34" width="320" height="10" fill="#1B1B1B" opacity="0.18" transform="translate(0 3)"/>
+  <rect x="0" y="34" width="320" height="10" fill="#EBC088"/>
+  <rect x="0" y="44" width="12" height="196" fill="#EBC088"/>
+  <rect x="308" y="44" width="12" height="196" fill="#EBC088"/>
+  <!-- Thick straw bed -->
+  <path d="M0 106 C50 96 100 108 160 102 C220 96 270 108 320 102 L320 240 L0 240 Z" fill="#C48820"/>
+  <!-- Warm floor pools under the two lamps -->
+  <ellipse cx="96" cy="162" rx="48" ry="22" fill="#F7B93E" opacity="0.24"/>
+  <ellipse cx="224" cy="162" rx="48" ry="22" fill="#F7B93E" opacity="0.24"/>
+  <!-- Straw nests -->
+  <ellipse cx="64" cy="132" rx="46" ry="15" fill="#1B1B1B" opacity="0.18" transform="translate(2 3)"/>
+  <ellipse cx="64" cy="132" rx="46" ry="15" fill="#C48820"/>
+  <ellipse cx="64" cy="133" rx="38" ry="10" fill="#5C3418" opacity="0.28"/>
+  <ellipse cx="256" cy="132" rx="46" ry="15" fill="#1B1B1B" opacity="0.18" transform="translate(2 3)"/>
+  <ellipse cx="256" cy="132" rx="46" ry="15" fill="#C48820"/>
+  <ellipse cx="256" cy="133" rx="38" ry="10" fill="#5C3418" opacity="0.28"/>
+  <ellipse cx="62" cy="208" rx="46" ry="15" fill="#1B1B1B" opacity="0.18" transform="translate(2 3)"/>
+  <ellipse cx="62" cy="208" rx="46" ry="15" fill="#C48820"/>
+  <ellipse cx="62" cy="209" rx="38" ry="10" fill="#5C3418" opacity="0.28"/>
+  <ellipse cx="258" cy="208" rx="46" ry="15" fill="#1B1B1B" opacity="0.18" transform="translate(2 3)"/>
+  <ellipse cx="258" cy="208" rx="46" ry="15" fill="#C48820"/>
+  <ellipse cx="258" cy="209" rx="38" ry="10" fill="#5C3418" opacity="0.28"/>
+  <!-- Eggs in the nests -->
+  <g fill="#FBF6E9">
+    <use href="#egg" x="38" y="132"/>
+    <use href="#egg" x="64" y="129"/>
+    <use href="#egg" x="90" y="133"/>
+    <use href="#egg" x="230" y="133"/>
+    <use href="#egg" x="256" y="129"/>
+    <use href="#egg" x="282" y="132"/>
+    <use href="#egg" x="36" y="210"/>
+    <use href="#egg" x="88" y="210"/>
+    <use href="#egg" x="232" y="210"/>
+    <use href="#egg" x="258" y="207"/>
+    <use href="#egg" x="284" y="210"/>
+  </g>
+  <!-- Hatched egg in front-left nest with a chick peeking under its cap -->
+  <circle cx="62" cy="196" r="9.5" fill="#FFE650"/>
+  <circle cx="58.5" cy="195" r="3.4" fill="#FBF6E9"/>
+  <circle cx="65.5" cy="195" r="3.4" fill="#FBF6E9"/>
+  <circle cx="59" cy="195.4" r="1.9" fill="#1B1B1B"/>
+  <circle cx="66" cy="195.4" r="1.9" fill="#1B1B1B"/>
+  <polygon points="60.5,198 63.5,198 62,201.5" fill="#B24622"/>
+  <path d="M50,200 L55,197 L60,201 L65,197 L70,201 L74,199 C74,207 70,210 62,210 C54,210 50,207 50,200 Z" fill="#FBF6E9"/>
+  <path d="M51,188 C54,180 60,177 65,178 C71,179 75,184 75,190 L70,188 L65,191 L60,187 L55,190 Z" fill="#FBF6E9"/>
+  <!-- Wooden seed feeder in the center -->
+  <polygon points="124,178 196,178 192,196 128,196" fill="#1B1B1B" opacity="0.18" transform="translate(3 4)"/>
+  <polygon points="124,178 196,178 192,196 128,196" fill="#EBC088"/>
+  <rect x="130" y="180" width="60" height="7" rx="3.5" fill="#5C3418"/>
+  <g fill="#F7B93E">
+    <ellipse cx="140" cy="184" rx="4" ry="2.2"/>
+    <ellipse cx="152" cy="183" rx="4" ry="2.2"/>
+    <ellipse cx="166" cy="184" rx="4" ry="2.2"/>
+    <ellipse cx="178" cy="183" rx="4" ry="2.2"/>
+  </g>
+  <g fill="#FFE650">
+    <ellipse cx="146" cy="184" rx="3.5" ry="2"/>
+    <ellipse cx="160" cy="183" rx="3.5" ry="2"/>
+    <ellipse cx="172" cy="184" rx="3.5" ry="2"/>
+  </g>
+  <!-- A settled yellow chick near the feeder -->
+  <line x1="110" y1="186" x2="110" y2="194" stroke="#B24622" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="117" y1="186" x2="117" y2="194" stroke="#B24622" stroke-width="2.5" stroke-linecap="round"/>
+  <ellipse cx="112" cy="178" rx="13" ry="11" fill="#FFE650"/>
+  <circle cx="122" cy="171" r="9" fill="#FFE650"/>
+  <polygon points="130,170 136,173 130,175" fill="#B24622"/>
+  <circle cx="124" cy="169.5" r="3.4" fill="#FBF6E9"/>
+  <circle cx="124.8" cy="169.8" r="1.9" fill="#1B1B1B"/>
+  <!-- Two hanging heat lamps and their translucent halos -->
+  <polygon points="74,60 118,60 144,162 48,162" fill="#F7B93E" opacity="0.15"/>
+  <polygon points="202,60 246,60 272,162 176,162" fill="#F7B93E" opacity="0.15"/>
+  <rect x="94" y="0" width="4" height="32" fill="#EBC088"/>
+  <rect x="89" y="28" width="14" height="12" rx="3" fill="#C82828"/>
+  <circle cx="96" cy="60" r="8" fill="#FFE650"/>
+  <path d="M86,38 L106,38 Q122,48 124,60 Q96,65 68,60 Q70,48 86,38 Z" fill="#B24622"/>
+  <rect x="222" y="0" width="4" height="32" fill="#EBC088"/>
+  <rect x="217" y="28" width="14" height="12" rx="3" fill="#C82828"/>
+  <circle cx="224" cy="60" r="8" fill="#FFE650"/>
+  <path d="M214,38 L234,38 Q250,48 252,60 Q224,65 196,60 Q198,48 214,38 Z" fill="#B24622"/>
+  <!-- Front wooden lip -->
+  <rect x="0" y="232" width="320" height="8" fill="#EBC088"/>
+</svg>
