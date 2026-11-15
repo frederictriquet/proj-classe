@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240">
+  <!-- [SPEC-4.5] [SPEC-8.1] [SPEC-8.3] [SPEC-13.3] Menu thumbnail of « Ruche du silence »: the
+       apiary in paper cut-out style, hive palette colours only, with two bees peeking out of the
+       flight hole and one on a flower. -->
+  <defs>
+    <polygon id="cell" points="0,-8 6.9,-4 6.9,4 0,8 -6.9,4 -6.9,-4"/>
+    <g id="petals">
+      <circle cx="0" cy="-7" r="5.5"/>
+      <circle cx="6.7" cy="-2.2" r="5.5"/>
+      <circle cx="4.1" cy="5.7" r="5.5"/>
+      <circle cx="-4.1" cy="5.7" r="5.5"/>
+      <circle cx="-6.7" cy="-2.2" r="5.5"/>
+    </g>
+  </defs>
+  <rect width="320" height="240" fill="#55A8DC"/>
+  <circle cx="276" cy="36" r="22" fill="#FBF6E9" opacity="0.4"/>
+  <circle cx="276" cy="36" r="15" fill="#FFD43B"/>
+  <path d="M206 34 C214 22 232 22 238 32 C248 26 262 32 258 42 L204 42 Z" fill="#FBF6E9"/>
+  <path d="M190 126 C220 96 250 96 280 118 C296 106 316 104 330 112 L330 240 L190 240 Z" fill="#2E6B3F"/>
+  <rect x="-10" y="124" width="340" height="120" fill="#66B356"/>
+  <!-- Hive: stand, body, roof, flight hole with two heads, flight board -->
+  <rect x="24" y="148" width="7" height="32" fill="#6B3F1F"/>
+  <rect x="88" y="148" width="7" height="32" fill="#6B3F1F"/>
+  <rect x="18" y="72" width="84" height="80" fill="#1B1B1B" opacity="0.18" transform="translate(4 5)"/>
+  <rect x="18" y="72" width="84" height="80" fill="#B4601C"/>
+  <rect x="18" y="108" width="84" height="3" fill="#1B1B1B" opacity="0.28"/>
+  <rect x="48" y="84" width="24" height="7" rx="3.5" fill="#1B1B1B" opacity="0.3"/>
+  <path d="M10 76 L60 40 L110 76 Z" fill="#1B1B1B" opacity="0.18" transform="translate(4 5)"/>
+  <path d="M10 76 L60 40 L110 76 Z" fill="#2C5F9E"/>
+  <rect x="30" y="116" width="60" height="28" rx="14" fill="#1B1B1B"/>
+  <path d="M44 124 L40 116 M50 124 L54 116" stroke="#1B1B1B" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="47" cy="133" r="10" fill="#FFD43B"/>
+  <circle cx="43.5" cy="132" r="3.6" fill="#FBF6E9"/>
+  <circle cx="51" cy="132" r="3.6" fill="#FBF6E9"/>
+  <circle cx="44" cy="132.5" r="2" fill="#1B1B1B"/>
+  <circle cx="51.5" cy="132.5" r="2" fill="#1B1B1B"/>
+  <circle cx="73" cy="135" r="10" fill="#FFD43B"/>
+  <circle cx="69.5" cy="134" r="3.6" fill="#FBF6E9"/>
+  <circle cx="77" cy="134" r="3.6" fill="#FBF6E9"/>
+  <circle cx="70" cy="134.5" r="2" fill="#1B1B1B"/>
+  <circle cx="77.5" cy="134.5" r="2" fill="#1B1B1B"/>
+  <path d="M18 144 L102 144 L110 152 L110 157 L10 157 L10 152 Z" fill="#6B3F1F"/>
+  <!-- Comb frame: honey at the top, empty cells at the bottom -->
+  <rect x="134" y="138" width="6" height="40" fill="#6B3F1F"/>
+  <rect x="206" y="138" width="6" height="40" fill="#6B3F1F"/>
+  <rect x="122" y="68" width="98" height="74" fill="#1B1B1B" opacity="0.18" transform="translate(4 5)"/>
+  <rect x="122" y="68" width="98" height="74" fill="#6B3F1F"/>
+  <rect x="116" y="68" width="110" height="7" fill="#6B3F1F"/>
+  <rect x="129" y="76" width="84" height="59" fill="#FBF6E9"/>
+  <g fill="#B4601C">
+    <use href="#cell" x="138" y="86"/>
+    <use href="#cell" x="152.5" y="86"/>
+    <use href="#cell" x="167" y="86"/>
+    <use href="#cell" x="181.5" y="86"/>
+    <use href="#cell" x="196" y="86"/>
+    <use href="#cell" x="145.2" y="98.5"/>
+    <use href="#cell" x="159.7" y="98.5"/>
+    <use href="#cell" x="174.2" y="98.5"/>
+    <use href="#cell" x="188.7" y="98.5"/>
+    <use href="#cell" x="203.2" y="98.5"/>
+    <use href="#cell" x="138" y="111"/>
+  </g>
+  <g fill="#6B3F1F">
+    <use href="#cell" x="152.5" y="111"/>
+    <use href="#cell" x="167" y="111"/>
+    <use href="#cell" x="181.5" y="111"/>
+    <use href="#cell" x="196" y="111"/>
+    <use href="#cell" x="145.2" y="123.5"/>
+    <use href="#cell" x="159.7" y="123.5"/>
+    <use href="#cell" x="174.2" y="123.5"/>
+    <use href="#cell" x="188.7" y="123.5"/>
+    <use href="#cell" x="203.2" y="123.5"/>
+  </g>
+  <!-- Stump and honey pot, under the comb -->
+  <rect x="180" y="166" width="40" height="18" fill="#6B3F1F"/>
+  <ellipse cx="200" cy="166" rx="20" ry="5" fill="#B4601C"/>
+  <ellipse cx="200" cy="155" rx="15" ry="11" fill="#FBF6E9"/>
+  <ellipse cx="200" cy="146" rx="10" ry="3" fill="#B4601C"/>
+  <path d="M200 142 L203 147 A3 3 0 1 1 197 147 Z" fill="#B4601C"/>
+  <!-- Flowers of the meadow, a bee on the pink one -->
+  <path d="M252 222 Q256 200 252 186" stroke="#2E6B3F" stroke-width="4" fill="none"/>
+  <g fill="#B8336A" transform="translate(252 184) scale(1.4)"><use href="#petals"/></g>
+  <circle cx="252" cy="184" r="5" fill="#FFD43B"/>
+  <path d="M154 232 Q158 214 154 204" stroke="#2E6B3F" stroke-width="4" fill="none"/>
+  <g fill="#2C5F9E" transform="translate(154 202) scale(1.2)"><use href="#petals"/></g>
+  <circle cx="154" cy="202" r="4" fill="#FFD43B"/>
+  <path d="M70 236 Q72 218 70 208" stroke="#2E6B3F" stroke-width="3" fill="none"/>
+  <g fill="#FBF6E9" transform="translate(70 206)"><use href="#petals"/></g>
+  <circle cx="70" cy="206" r="3.5" fill="#B4601C"/>
+  <path d="M110 214 Q112 200 110 192" stroke="#2E6B3F" stroke-width="3" fill="none"/>
+  <g fill="#B8336A" transform="translate(110 190)"><use href="#petals"/></g>
+  <circle cx="110" cy="190" r="3.5" fill="#FFD43B"/>
+  <!-- The bee: wings, striped body, head -->
+  <ellipse cx="246" cy="164" rx="8" ry="11" fill="#FBF6E9" opacity="0.9" transform="rotate(-25 246 164)"/>
+  <ellipse cx="258" cy="164" rx="8" ry="11" fill="#FBF6E9" opacity="0.9" transform="rotate(25 258 164)"/>
+  <ellipse cx="250" cy="176" rx="14" ry="11" fill="#FFD43B"/>
+  <rect x="244" y="166" width="5" height="21" fill="#1B1B1B"/>
+  <rect x="253" y="166" width="5" height="21" fill="#1B1B1B"/>
+  <circle cx="265" cy="174" r="8" fill="#FFD43B"/>
+  <circle cx="267" cy="172" r="3.2" fill="#FBF6E9"/>
+  <circle cx="267.6" cy="172.4" r="1.8" fill="#1B1B1B"/>
+  <!-- Clump of the butterflies, front right -->
+  <path d="M284 240 Q288 190 296 160" stroke="#2E6B3F" stroke-width="5" fill="none"/>
+  <g fill="#B8336A" transform="translate(296 156) scale(1.8)"><use href="#petals"/></g>
+  <circle cx="296" cy="156" r="6.5" fill="#FFD43B"/>
+  <path d="M232 246 C232 214 252 200 278 200 C306 200 326 214 328 246 Z" fill="#1B1B1B" opacity="0.18" transform="translate(4 5)"/>
+  <path d="M232 246 C232 214 252 200 278 200 C306 200 326 214 328 246 Z" fill="#2E6B3F"/>
+</svg>

@@ -6,7 +6,7 @@ import type { AppManifest, AppModule } from './types'
  * [SPEC-4.3] The only list to complete to add a sub-application: the name of its folder under
  * `src/apps/`, in menu order. The folder holds `manifest.ts` and `app.ts` (see `types.ts`).
  */
-export const APP_IDS: readonly string[] = ['foret', 'ferme', 'foret-galerie', 'ferme-galerie', 'demo']
+export const APP_IDS: readonly string[] = ['foret', 'ferme', 'ruche', 'foret-galerie', 'ferme-galerie', 'demo']
 
 export interface AppEntry {
   manifest: AppManifest

@@ -13,7 +13,7 @@ export const PAPER_SHADOW = { x: 5, y: 7 } as const
 
 /** Box of the drawing with its ground point at (x, y) and its feet `height` above it, facing one
  *  way or, if unknown, either way, paper shadow included. `margin` widens it on every side. */
-export function drawingBox(spec: AnimalSpec, x: number, y: number, facing?: 1 | -1, height = 0, margin = 0): Rect {
+export function drawingBox(spec: Pick<AnimalSpec, 'extent'>, x: number, y: number, facing?: 1 | -1, height = 0, margin = 0): Rect {
   const { left, right, top } = spec.extent
   const l = facing === 1 ? left : facing === -1 ? -right : Math.min(left, -right)
   const r = facing === 1 ? right : facing === -1 ? -left : Math.max(right, -left)
