@@ -279,6 +279,11 @@ button:disabled {
   color: var(--ink);
 }
 
+/* [SPEC-7.5.1] Anchored at the top of the window: a change of height never moves the panel. */
+dialog.settings-panel {
+  margin-block: 1rem auto;
+}
+
 .settings-panel::backdrop {
   background: rgb(0 0 0 / 55%);
 }
@@ -371,6 +376,30 @@ button:disabled {
   align-items: center;
   gap: 0.5rem;
   font-size: 1.2rem;
+}
+
+/* [SPEC-7.5.1] A slot stacks every text its element can show in one cell, the others invisible:
+   it keeps the size of the longest, so a change of text never moves the panel. */
+.stacked-slot {
+  display: grid;
+}
+
+.stacked-slot > * {
+  grid-area: 1 / 1;
+}
+
+.stacked-sizer {
+  visibility: hidden;
+}
+
+/* The badge's slot grows to the full line when its longest text does not fit beside the label. */
+.sound-zone-slot {
+  flex: 1 0 auto;
+  max-width: 100%;
+}
+
+.sound-zone-slot > * {
+  justify-self: end;
 }
 
 /* [SPEC-7.5] Zone of the level, in words. */
@@ -473,6 +502,16 @@ button:disabled {
 
 .sound-gauge-label {
   font-size: 1rem;
+}
+
+/* [SPEC-7.5.1] Errors and warnings of the microphone: a zone of five lines, kept even when
+   empty, that scrolls when both are shown. */
+.sound-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  height: 5lh;
+  overflow-y: auto;
 }
 
 .sound-error {

@@ -58,14 +58,19 @@ export interface LevelBadge {
   kind: 'off' | 'calm' | 'alert' | 'noise'
 }
 
+const MICROPHONE_CLOSED_TEXT = 'Micro fermé'
+const MICROPHONE_OPENING_TEXT = 'Ouverture du micro…'
+/** Texts of the badge that do not depend on the app. */
+const BADGE_PHASE_TEXTS = [MICROPHONE_CLOSED_TEXT, MICROPHONE_OPENING_TEXT]
+
 export function levelBadge(
   phase: SoundStatus['phase'],
   zones: readonly string[],
   aboveDb: number,
   thresholdsDb: readonly number[],
 ): LevelBadge | undefined {
-  if (phase === 'off') return { text: 'Micro fermé', kind: 'off' }
-  if (phase === 'opening') return { text: 'Ouverture du micro…', kind: 'off' }
+  if (phase === 'off') return { text: MICROPHONE_CLOSED_TEXT, kind: 'off' }
+  if (phase === 'opening') return { text: MICROPHONE_OPENING_TEXT, kind: 'off' }
   const index = zoneIndex(aboveDb, thresholdsDb)
   const text = zones[index]
   if (text === undefined) return undefined
@@ -73,7 +78,7 @@ export function levelBadge(
 }
 
 /** [SPEC-6.3] State of the calibration, without the value in dB [SPEC-7.5]. */
-export function calibrationText(status: SoundStatus): string {
+export function calibrationText(status: Pick<SoundStatus, 'calibrating' | 'calibratedAt'>): string {
   if (status.calibrating) return 'Calibrage en cours : silence pendant 3 secondes…'
   if (status.calibratedAt === null) return 'Pas encore calibré : le bruit ambiant par défaut est utilisé.'
   return `Calibré le ${dateFormat.format(new Date(status.calibratedAt))}.`
@@ -168,12 +173,25 @@ export function soundSection(
   const badge = document.createElement('span')
   badge.className = 'sound-zone'
   badge.setAttribute('role', 'status')
-  head.append(levelName, badge)
 
   const slider = gaugeSlider(manifest)
   const scale = gaugeScale(slider)
   const thresholds = manifest.soundThresholds ?? []
   const zones = manifest.soundZones ?? []
+
+  // [SPEC-7.5.1] Every text the badge can show sits, invisible, in the badge's grid cell: the slot
+  // keeps the size of the longest one, so a change of zone never moves the panel.
+  const badgeSlot = document.createElement('span')
+  badgeSlot.className = 'stacked-slot sound-zone-slot'
+  const sizers = [...zones, ...BADGE_PHASE_TEXTS].map((text) => {
+    const sizer = document.createElement('span')
+    sizer.className = 'sound-zone stacked-sizer'
+    sizer.setAttribute('aria-hidden', 'true')
+    sizer.textContent = text
+    return sizer
+  })
+  badgeSlot.append(...sizers, badge)
+  head.append(levelName, badgeSlot)
 
   const gauge = document.createElement('div')
   gauge.className = 'sound-gauge'
@@ -218,6 +236,11 @@ export function soundSection(
   const error = paragraph('sound-error')
   error.setAttribute('role', 'alert')
   const warning = paragraph('sound-warning')
+  // [SPEC-7.5.1] Errors and warnings come and go: their zone keeps a fixed height, empty when
+  // there is nothing to say, so the panel does not move.
+  const messages = document.createElement('div')
+  messages.className = 'sound-messages'
+  messages.append(error, warning)
 
   // [SPEC-6.5] Simulated source: a slider sets the raw level, in dBFS (development only).
   const simulation = document.createElement('label')
@@ -237,7 +260,7 @@ export function soundSection(
     link.dispatch({ type: 'simulate-level', db: simulationInput.valueAsNumber })
   })
 
-  top.append(microphone, head, gauge, error, warning, simulation)
+  top.append(microphone, head, gauge, messages, simulation)
 
   // [SPEC-6.3] Calibration, at the bottom of the panel.
   const calibration = document.createElement('section')
@@ -245,6 +268,20 @@ export function soundSection(
   const calibrationTitle = document.createElement('h3')
   calibrationTitle.textContent = 'Calibrage'
   const calibrationState = paragraph('sound-calibration-state')
+  // [SPEC-7.5.1] The state takes the place of its longest text, like the badge of the zone.
+  const calibrationSlot = document.createElement('div')
+  calibrationSlot.className = 'stacked-slot'
+  const calibrationSizers = [
+    calibrationText({ calibrating: true, calibratedAt: null }),
+    calibrationText({ calibrating: false, calibratedAt: null }),
+    calibrationText({ calibrating: false, calibratedAt: new Date().toISOString() }),
+  ].map((text) => {
+    const sizer = paragraph('stacked-sizer')
+    sizer.setAttribute('aria-hidden', 'true')
+    sizer.textContent = text
+    return sizer
+  })
+  calibrationSlot.append(...calibrationSizers, calibrationState)
   const help = paragraph('sound-help')
   help.textContent = 'Demandez le silence à la classe, puis cliquez sur « Calibrer » : la mesure dure 3 secondes.'
   const calibrate = document.createElement('button')
@@ -252,7 +289,7 @@ export function soundSection(
   calibrate.textContent = 'Calibrer'
   calibrate.addEventListener('click', () => link.dispatch({ type: 'calibrate' }))
   const calibrationBody = document.createElement('div')
-  calibrationBody.append(calibrationTitle, calibrationState, help)
+  calibrationBody.append(calibrationTitle, calibrationSlot, help)
   calibration.append(calibrationBody, calibrate)
 
   let status: SoundStatus | undefined

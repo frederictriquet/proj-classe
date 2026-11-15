@@ -9,7 +9,7 @@ import { Container, Graphics } from 'pixi.js'
 import { BIG_SHADOW, paperPieces, pivoted, SHADOW, type PathBuilder } from '../../silence/paper'
 import { fadeLevel, type RewardView } from '../../silence/reward'
 import type { Incubator } from './incubator'
-import { DECOR_BOUNDS, LAMPS, MOTHER_HEN, type HeatLamp } from './layout'
+import { DECOR_BOUNDS, LAMPS, type HeatLamp } from './layout'
 import { PALETTE } from './palette'
 import {
   createFeathers,
