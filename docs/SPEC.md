@@ -127,11 +127,12 @@ SPEC-3.9 Version défectueuse et retour arrière
 - Navigateurs autres que Chrome.
 - Application native.
 
-## SPEC-12 Ferme
+## SPEC-12 Ferme du silence
 
 Décisions du 2026-11-15.
 
-- 12.1 Même but et même code commun que la forêt (SPEC-9.1, SPEC-9.8), dans un décor de ferme. La ferme n'émet aucun son. Besoin déclaré : `microphone`.
-- 12.2 Huit animaux, du moins timide au plus timide : poule, cheval, lapin, mouton, cochon, vache, canard, chèvre.
-- 12.3 Palette propre à la ferme (SPEC-8.3), consignée ici par la tâche qui la dessine.
-- 12.4 Restent à décider avant de dessiner : le titre sur le menu, le décor et la cachette de chaque animal, la récompense.
+- 12.1 Titre sur le menu : « Ferme du silence ». Même but et même code commun que la forêt (SPEC-9.1, SPEC-9.8), dans un décor de ferme. La ferme n'émet aucun son. Besoin déclaré : `microphone`.
+- 12.2 Huit animaux, du moins timide au plus timide, chacun avec sa cachette : poule (poulailler sur pilotis : sort par la petite porte et descend la rampe) ; cheval (grange : passe la tête par la grande porte) ; lapin (potager : derrière les choux) ; mouton (meule de foin : sort sur le côté) ; cochon (porcherie : derrière la palissade) ; vache (grange, par la même porte que le cheval) ; canard (mare : derrière les roseaux) ; chèvre (meule de foin : pointe la tête par-dessus, puis s'installe au sommet). Mêmes états et mêmes activités que les animaux de la forêt (SPEC-9.3).
+- 12.3 Décor en plusieurs plans (SPEC-8.6) : ciel ; collines et champs au loin ; bâtiments (grange rouge à gauche, poulailler au fond à droite, porcherie à droite) ; cour au centre ; meule de foin, potager et mare au premier plan. Le cheval et la vache s'installent au fond de la cour, près de la grange, pour ne pas cacher les petits animaux. Vie discrète permanente : nuages lents, roseaux et choux qui ondulent.
+- 12.4 Récompense : quand les huit animaux sont installés, un arc-en-ciel se lève lentement au-dessus des collines et la lumière se réchauffe, tant que le calme dure (fondu commun, SPEC-9.8). Aucune récompense sonore.
+- 12.5 Palette de la ferme (SPEC-8.3, dix couleurs, `src/apps/ferme/palette.ts`) : encre `#1B1B1B` (pupilles, portes sombres, ombres, tête du mouton), crème `#FBF6E9` (nuages, yeux, laine, poule, vache), ciel `#8ED1F0`, herbe `#5FAA4D` (cour, collines), feuillage `#2E6B3F` (collines lointaines, arbres, choux, roseaux), rouge `#B23828` (grange, toits, crête, bec du canard, arc-en-ciel), paille `#F8D45A` (foin, blé, soleil, canard, cornes), brun `#7A4A26` (bois, boue, cheval, chèvre), rose `#EE9AAE` (cochon, museaux, oreilles du lapin), bleu `#24689A` (mare, arc-en-ciel). Le rose du cochon est proche de l'herbe en luminosité : le cochon s'installe sur la boue devant la porcherie, pas sur l'herbe.

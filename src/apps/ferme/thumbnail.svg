@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240">
+  <!-- [SPEC-4.5] [SPEC-8.1] [SPEC-8.3] [SPEC-12.3] Menu thumbnail of « Ferme du silence »: the
+       farmyard in paper cut-out style, farm palette colours only, with eyes peeking out of the
+       barn door and over the haystack. -->
+  <rect width="320" height="240" fill="#8ED1F0"/>
+  <circle cx="268" cy="38" r="22" fill="#FBF6E9" opacity="0.4"/>
+  <circle cx="268" cy="38" r="15" fill="#F8D45A"/>
+  <path d="M-10 132 C40 96 90 96 140 128 C190 100 250 92 330 124 L330 240 L-10 240 Z" fill="#2E6B3F"/>
+  <rect x="40" y="112" width="90" height="10" rx="5" fill="#F8D45A" opacity="0.85"/>
+  <rect x="200" y="106" width="96" height="10" rx="5" fill="#F8D45A" opacity="0.85"/>
+  <path d="M-10 150 C60 132 120 136 170 148 C230 134 280 136 330 146 L330 240 L-10 240 Z" fill="#5FAA4D"/>
+  <!-- Barn -->
+  <path d="M10 98 L80 58 L150 98 Z" fill="#1B1B1B" opacity="0.18" transform="translate(4 5)"/>
+  <rect x="18" y="96" width="124" height="80" fill="#1B1B1B" opacity="0.18" transform="translate(4 5)"/>
+  <rect x="18" y="96" width="124" height="80" fill="#B23828"/>
+  <path d="M18 98 L80 62 L142 98 Z" fill="#B23828"/>
+  <rect x="68" y="78" width="24" height="18" fill="#FBF6E9"/>
+  <rect x="72" y="82" width="16" height="14" fill="#1B1B1B"/>
+  <path d="M10 100 L80 58 L150 100 L150 108 L80 68 L10 108 Z" fill="#7A4A26"/>
+  <rect x="62" y="116" width="62" height="60" fill="#FBF6E9"/>
+  <rect x="68" y="122" width="50" height="54" fill="#1B1B1B"/>
+  <circle cx="86" cy="144" r="6" fill="#FBF6E9"/>
+  <circle cx="100" cy="144" r="6" fill="#FBF6E9"/>
+  <circle cx="87.5" cy="144" r="3.4" fill="#1B1B1B"/>
+  <circle cx="101.5" cy="144" r="3.4" fill="#1B1B1B"/>
+  <!-- Mud and pond -->
+  <ellipse cx="236" cy="184" rx="38" ry="11" fill="#7A4A26"/>
+  <ellipse cx="270" cy="222" rx="62" ry="18" fill="#7A4A26"/>
+  <ellipse cx="270" cy="222" rx="56" ry="15" fill="#24689A"/>
+  <!-- Haystack, with eyes over its top -->
+  <circle cx="58" cy="182" r="9" fill="#7A4A26"/>
+  <circle cx="54" cy="181" r="4" fill="#FBF6E9"/>
+  <circle cx="63" cy="181" r="4" fill="#FBF6E9"/>
+  <circle cx="55" cy="181.5" r="2.2" fill="#1B1B1B"/>
+  <circle cx="64" cy="181.5" r="2.2" fill="#1B1B1B"/>
+  <path d="M4 244 C4 200 28 186 56 186 C86 186 110 204 112 244 Z" fill="#1B1B1B" opacity="0.18" transform="translate(4 5)"/>
+  <path d="M4 244 C4 200 28 186 56 186 C86 186 110 204 112 244 Z" fill="#F8D45A"/>
+  <!-- A pig on the mud -->
+  <ellipse cx="236" cy="172" rx="22" ry="13" fill="#EE9AAE"/>
+  <ellipse cx="256" cy="168" rx="9" ry="9" fill="#EE9AAE"/>
+  <ellipse cx="264" cy="170" rx="4" ry="5" fill="#EE9AAE"/>
+  <circle cx="257" cy="165" r="2" fill="#1B1B1B"/>
+  <rect x="222" y="180" width="5" height="8" fill="#EE9AAE"/>
+  <rect x="244" y="180" width="5" height="8" fill="#EE9AAE"/>
+  <!-- Cabbages -->
+  <path d="M150 244 C150 214 162 204 176 204 C190 204 202 214 202 244 Z" fill="#2E6B3F"/>
+  <path d="M190 244 C190 220 200 212 212 212 C224 212 234 220 234 244 Z" fill="#2E6B3F"/>
+</svg>

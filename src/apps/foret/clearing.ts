@@ -8,10 +8,12 @@
 // of the shape it moves to `actors`, drawn in front of the near trees and behind the foreground.
 // Everything is in world units (layout.ts): `resize` scales the whole clearing to the screen.
 import { Container, Graphics } from 'pixi.js'
-import { PALETTE, PAPER_SHADOW } from './palette'
+import { PALETTE } from './palette'
 import { oscillate, wrap } from '../../silence/ambient'
 import type { Decor } from '../../silence/decor'
 import { viewport, type Ellipse, type Point, type Rect } from '../../silence/geometry'
+import { BIG_SHADOW, lobed, paperPieces, pivoted, type PathBuilder, type Swaying } from '../../silence/paper'
+import { seededRandom } from '../../silence/random'
 import { AMBIENT, rayAlpha } from './ambient'
 import {
   BRANCH,
@@ -22,7 +24,6 @@ import {
   HIDEOUT_IDS,
   HORIZON_Y,
   LEFT_TREE,
-  LOBE_BULGE,
   LOG,
   RIGHT_TREE,
   ROOT_FLARE,
@@ -46,68 +47,13 @@ export interface Clearing extends Decor {
 const BOTTOM = DECOR_BOUNDS.y + DECOR_BOUNDS.height
 const RIGHT = DECOR_BOUNDS.x + DECOR_BOUNDS.width
 
-/** Offset of the paper shadow of a piece, in world units: light comes from the top left. */
-const SHADOW = { x: 7, y: 9 }
-const BIG_SHADOW = { x: 12, y: 16 }
-
-type PathBuilder = (g: Graphics) => Graphics
-
-/** Seeded random numbers in [0, 1): the same drawing at every launch. */
-function random(seed: number): () => number {
-  let state = seed >>> 0
-  return () => {
-    state = (state + 0x6d2b79f5) >>> 0
-    let t = state
-    t = Math.imul(t ^ (t >>> 15), t | 1)
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
-
-/** A paper piece: one shape filled with a palette colour, over its shadow. The shape must be a
- *  single outline, or overlapping parts would darken its shadow. */
-function piece(path: PathBuilder, color: string, shadow: Point | null = SHADOW): Container {
-  const container = new Container()
-  if (shadow) {
-    const shade = path(new Graphics()).fill(PAPER_SHADOW)
-    shade.position.set(shadow.x, shadow.y)
-    container.addChild(shade)
-  }
-  container.addChild(path(new Graphics()).fill(color))
-  return container
-}
-
-/**
- * Lobed outline around an ellipse, as one path: leaves, bushes, clouds. With `dome`, only the
- * upper half, standing on a flat base at `e.y`. Each lobe bulges out of the ellipse by
- * `LOBE_BULGE / 2` to `LOBE_BULGE`, so the ellipse itself is always covered.
- */
-function lobed(e: Ellipse, lobes: number, seed: number, dome = false): PathBuilder {
-  return (g) => {
-    const rand = random(seed)
-    const start = dome ? Math.PI : 0
-    const step = (dome ? -Math.PI : 2 * Math.PI) / lobes
-    // A dome runs from its left end over the top to its right end; y grows downwards.
-    const at = (angle: number, factor: number): [number, number] => [
-      e.x + e.rx * factor * Math.cos(angle),
-      e.y + (dome ? -1 : 1) * e.ry * factor * Math.sin(angle),
-    ]
-    g.moveTo(...at(start, 1))
-    for (let i = 0; i < lobes; i++) {
-      const bulge = LOBE_BULGE * (0.5 + rand() / 2)
-      // The middle of a quadratic curve lies halfway between its chord and its control point.
-      const control = 2 * (1 + bulge) - Math.cos(step / 2)
-      g.quadraticCurveTo(...at(start + (i + 0.5) * step, control), ...at(start + (i + 1) * step, 1))
-    }
-    return g.closePath()
-  }
-}
+const piece = paperPieces(PALETTE.ink)
 
 /** Row of rounded tree tops between `left` and `right`, standing on `baseY`, filled down to the
  *  bottom of the decor. */
 function treeline(baseY: number, heights: [number, number], widths: [number, number], seed: number): PathBuilder {
   return (g) => {
-    const rand = random(seed)
+    const rand = seededRandom(seed)
     let x = DECOR_BOUNDS.x
     g.moveTo(x, BOTTOM).lineTo(x, baseY)
     while (x < RIGHT) {
@@ -162,19 +108,6 @@ function foliage(e: Ellipse, seed: number, dome = false): Container {
     : { x: e.x + e.rx * 0.1, y: e.y + e.ry * 0.16, rx: e.rx * 0.7, ry: e.ry * 0.66 }
   container.addChild(piece(lobed(front, dome ? 6 : 7, seed + 1, dome), PALETTE.forest))
   return container
-}
-
-/** A container that sways about `pivot`, drawn in world coordinates. */
-function pivoted(pivot: Point): Container {
-  const container = new Container()
-  container.pivot.set(pivot.x, pivot.y)
-  container.position.set(pivot.x, pivot.y)
-  return container
-}
-
-interface Swaying {
-  node: Container
-  phase: number
 }
 
 function drawTree(tree: Tree, seed: number, swaying: Swaying[]): { trunk: Container; crown: Container } {
@@ -373,7 +306,7 @@ function drawLight(): { layer: Container; rays: Swaying[] } {
 /** A tuft of long leaves growing from `root`, leaning towards `lean` (radians, 0 = upright). */
 function tuft(root: Point, lean: number, seed: number): Container {
   const container = pivoted(root)
-  const rand = random(seed)
+  const rand = seededRandom(seed)
   const g = new Graphics()
   for (let i = 0; i < 5; i++) {
     const angle = lean + (i - 2) * 0.32 + (rand() - 0.5) * 0.15

@@ -2,8 +2,6 @@
 // picture of the forest (PixiJS drawings and the hand-written SVG thumbnail). No other colour is
 // drawn: shadows, light and depth use these colours with transparency. The list is recorded in
 // docs/SPEC.md, SPEC-8.3.1. Kept free of PixiJS imports, so the menu and the tests can read it.
-import { paperShadow } from '../../art/palette'
-
 export const PALETTE = {
   /** Pupils, holes, paper shadows (with transparency). */
   ink: '#1B1B1B',
@@ -27,6 +25,3 @@ export const PALETTE = {
 } as const
 
 export type PaletteColor = keyof typeof PALETTE
-
-/** Paper cut-outs cast a soft shadow on the layer below [SPEC-8.1]. */
-export const PAPER_SHADOW = paperShadow(PALETTE.ink)

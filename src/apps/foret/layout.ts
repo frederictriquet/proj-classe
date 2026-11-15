@@ -1,7 +1,7 @@
 // [SPEC-8.6] [SPEC-9.2] Geometry of the clearing, in world units, free of PixiJS so it can be
 // tested. `clearing.ts` draws from these values; the world is drawn once and a screen only
 // changes its scale and position (see src/silence/geometry.ts).
-import type { Ellipse, Point, Rect } from '../../silence/geometry'
+import { lobedBounds, type Ellipse, type Point, type Rect } from '../../silence/geometry'
 
 /** [SPEC-8.6] Area the decor covers. It extends the safe zone on every side, so that any screen
  *  from 1:2 (portrait) to 4:1 shows decor and never an empty band. */
@@ -14,10 +14,6 @@ export const HORIZON_Y = 620
  *  and `foreground` (see `clearing.ts`). */
 export const PLANES = ['sky', 'farTrees', 'ground', 'nearTrees', 'foreground'] as const
 export type PlaneId = (typeof PLANES)[number]
-
-/** Leafy shapes are lobed: each lobe bulges out of the base ellipse by up to this fraction of
- *  its radius. The base ellipse itself is always covered. */
-export const LOBE_BULGE = 0.1
 
 export interface Tree {
   /** The trunk, from above the top of the screen down to its base on the grass. */
@@ -89,13 +85,6 @@ export interface Hideout {
    *  stands (feet position). An animal moves from the slot to the actors layer once it is clear
    *  of the hideout's shape. */
   exit: Point
-}
-
-/** Extent of a lobed ellipse, lobes included. */
-function lobedBounds(e: Ellipse, dome: boolean): Rect {
-  const rx = e.rx * (1 + LOBE_BULGE)
-  const ry = e.ry * (1 + LOBE_BULGE)
-  return { x: e.x - rx, y: e.y - ry, width: 2 * rx, height: dome ? ry : 2 * ry }
 }
 
 /**

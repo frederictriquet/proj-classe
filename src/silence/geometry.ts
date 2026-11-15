@@ -27,6 +27,17 @@ export interface Ellipse {
 /** [SPEC-8.6] 4:3 central zone, always fully visible: the hideouts and the open meadow lie in it. */
 export const SAFE_ZONE: Rect = { x: 0, y: 0, width: 1440, height: 1080 }
 
+/** Leafy shapes are lobed: each lobe bulges out of the base ellipse by up to this fraction of
+ *  its radius. The base ellipse itself is always covered (see `lobed` in paper.ts). */
+export const LOBE_BULGE = 0.1
+
+/** Extent of a lobed ellipse, lobes included; a dome is the upper half, standing on `e.y`. */
+export function lobedBounds(e: Ellipse, dome: boolean): Rect {
+  const rx = e.rx * (1 + LOBE_BULGE)
+  const ry = e.ry * (1 + LOBE_BULGE)
+  return { x: e.x - rx, y: e.y - ry, width: 2 * rx, height: dome ? ry : 2 * ry }
+}
+
 export interface Viewport {
   /** World units to screen pixels, the same on both axes: no deformation. */
   scale: number
