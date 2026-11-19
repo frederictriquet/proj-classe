@@ -372,11 +372,12 @@ function elf(b: Builder, figure: Container): Rig {
   const eyes = [b.eye(head, 2, -120, 7.5), b.eye(head, 20, -120, 7.5)]
   head.addChild(new Graphics().circle(30, -108, 5).fill({ color: red, alpha: 0.55 }))
   head.addChild(new Graphics().moveTo(8, -104).quadraticCurveTo(16, -98, 24, -104).stroke({ width: 3, color: ink, cap: 'round' }))
-  // The hat, its tip bent back, a bell at the end: it nods like an ear.
-  const hatTip = b.joint(head, -6, -138)
-  b.cut(hatTip, (g) => g.moveTo(-14, -136).quadraticCurveTo(-6, -158, -26, -158).quadraticCurveTo(-8, -150, 4, -138).closePath(), red)
-  b.cut(hatTip, (g) => g.circle(-27, -159, 6), yellow)
-  b.cut(head, (g) => g.moveTo(-20, -128).quadraticCurveTo(4, -150, 36, -128).quadraticCurveTo(10, -122, -20, -128).closePath(), red)
+  // The hat covers the top of the head down to above the eyes; its tip, bent back with a bell at
+  // the end, nods like an ear.
+  const hatTip = b.joint(head, -8, -142)
+  b.cut(hatTip, (g) => g.moveTo(-18, -138).quadraticCurveTo(-12, -160, -30, -158).quadraticCurveTo(-10, -150, 2, -146).closePath(), red)
+  b.cut(hatTip, (g) => g.circle(-31, -159, 6), yellow)
+  b.cut(head, (g) => g.moveTo(-24, -124).quadraticCurveTo(-22, -152, 6, -154).quadraticCurveTo(34, -152, 36, -128).quadraticCurveTo(8, -131, -24, -124).closePath(), red)
   const frontArm = b.joint(figure, 14, -88)
   b.cut(frontArm, (g) => g.roundRect(8, -92, 14, 40, 7), fir)
   b.cut(frontArm, (g) => g.circle(15, -52, 7.5), skin)
@@ -606,10 +607,11 @@ function santa(b: Builder, figure: Container): Rig {
   b.cut(head, (g) => g.roundRect(-6, -194, 60, 14, 7), cream)
   head.addChild(new Graphics().circle(44, -164, 6).fill({ color: red, alpha: 0.65 }))
   const eyes = [b.eye(head, 18, -174, 7.5), b.eye(head, 36, -174, 7.5)]
-  const frontArm = b.joint(figure, 26, -144)
-  b.cut(frontArm, (g) => g.roundRect(16, -150, 24, 62, 12), red)
-  b.cut(frontArm, (g) => g.roundRect(14, -98, 28, 12, 6), cream, { shadow: false })
-  b.cut(frontArm, (g) => g.circle(28, -82, 12), brown)
+  // The near arm hangs at the side of the body, behind the front of the beard.
+  const frontArm = b.joint(figure, 4, -144)
+  b.cut(frontArm, (g) => g.roundRect(-8, -150, 24, 62, 12), red)
+  b.cut(frontArm, (g) => g.roundRect(-10, -98, 28, 12, 6), cream, { shadow: false })
+  b.cut(frontArm, (g) => g.circle(4, -82, 12), brown)
   return {
     upper: [
       { node: backArm, baseY: -146 },

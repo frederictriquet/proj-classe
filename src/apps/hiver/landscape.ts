@@ -264,10 +264,11 @@ function drawTree(slots: Record<SlotHideoutId, Container>): Container {
     [{ x: mid - 10, y: top.y + 20 }, { x: 40, y: 70 }, 36, 12],
     [{ x: mid + 10, y: top.y + 20 }, { x: 270, y: 60 }, 32, 12],
     [{ x: top.left + 20, y: top.y + 110 }, { x: -70, y: 230 }, 30, 12],
-    [{ x: 120, y: 120 }, { x: 130, y: 10 }, 18, 8],
+    // Twigs, each one growing out of a branch above.
+    [{ x: 112, y: 187 }, { x: 130, y: 10 }, 18, 8],
     [{ x: mid - 20, y: top.y + 60 }, { x: -20, y: 140 }, 26, 10],
     [{ x: mid + 20, y: top.y + 50 }, { x: 330, y: 150 }, 24, 10],
-    [{ x: 90, y: 140 }, { x: 60, y: 60 }, 14, 6],
+    [{ x: 83, y: 140 }, { x: 60, y: 60 }, 14, 6],
     [{ x: 230, y: 140 }, { x: 300, y: 96 }, 12, 6],
   ]
   for (const [from, to, t0, t1] of crown) tree.addChild(piece(limb(from, to, t0, t1), PALETTE.brown))

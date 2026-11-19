@@ -77,7 +77,8 @@ export const HOUSE = {
   door: { x: 880, y: 420, width: 150, height: 210 },
   window: { x: 1056, y: 440, width: 96, height: 80 },
   attic: { x: 1010, y: 330, radius: 24 },
-  chimney: { x: 1090, y: 222, width: 40, height: 90 },
+  /** Its foot goes down behind the roof, which hides it. */
+  chimney: { x: 1090, y: 222, width: 40, height: 140 },
 } as const
 
 /** [SPEC-16.3.3] Where the smoke leaves the chimney. */
