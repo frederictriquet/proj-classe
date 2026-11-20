@@ -70,4 +70,16 @@ describe('drawing order on the screen [SPEC-9.8] [SPEC-13.2.3]', () => {
     expect(depthCrossings({ still: BASE, mover: crossing(100, 0) }, 'mover')).toEqual([])
     expect(depthCrossings({ still: BASE, mover: crossing(100, 20) }, 'mover')).not.toEqual([])
   })
+
+  it('draws a plant at its ground point whatever the height of its path [SPEC-17.2.1]', () => {
+    const plant: AnimalSpec = {
+      ...BASE,
+      usesSlot: false,
+      gait: 'grow',
+      path: BASE.path.map((p, i) => ({ ...p, x: 500, y: 800, height: 30 * i })),
+    }
+    expect(restingPoints(plant).map((p) => p.height)).toEqual([0, 0, 0])
+    // A walker crossing its depth meets its drawing on the ground, not lifted out of the way.
+    expect(depthCrossings({ still: plant, mover: crossing(0) }, 'mover')).not.toEqual([])
+  })
 })

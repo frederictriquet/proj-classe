@@ -8,7 +8,12 @@
 //
 // [SPEC-13.2.3] An animal that flies (bees, butterflies) also has a height above the ground: `x, y`
 // stays the point of the ground right under it, which sets its depth (drawing order) and its
-// shadow; the drawing goes up by the height. Animals that walk or hop keep a height of zero.
+// shadow; the drawing goes up by the height. Animals that walk or hop keep a height of zero, except
+// to rise straight up out of a hideout (the nestlings of spring [SPEC-17.2.3]).
+//
+// [SPEC-17.2.1] A plant (`gait: 'grow'`: flowers, buds) grows in place: its drawing stays at the
+// ground point of its path, never lifted, and the height of its path measures how far it has
+// opened, which its rig reads from the pose.
 
 /** [SPEC-9.3] Hidden; peeks out of its hideout; comes closer; settled in the decor; on alert
  *  (frozen); running back to its hideout. */
@@ -85,8 +90,9 @@ export interface AnimalSpec<Id extends string = string, Hideout extends string =
   speed: { peek: number; walk: number; flee: number }
   /** Seconds spent peeking before coming out. */
   peekPause: number
-  /** Hops (in the forest: rabbit, squirrel, owl), walks or flies [SPEC-9.8] [SPEC-13.2.3]. */
-  gait: 'hop' | 'walk' | 'fly'
+  /** Hops (in the forest: rabbit, squirrel, owl), walks, flies or grows in place [SPEC-9.8]
+   *  [SPEC-13.2.3] [SPEC-17.2.1]. */
+  gait: 'hop' | 'walk' | 'fly' | 'grow'
   /** Wings and weaving of an animal that flies: required with `gait: 'fly'`, ignored otherwise. */
   flight?: Flight
   /** World units travelled per stride or per hop. */
@@ -98,6 +104,12 @@ export interface AnimalSpec<Id extends string = string, Hideout extends string =
   grazeCrouch: number
   /** Relative weights of the activities once settled. */
   activities: Readonly<Record<Activity, number>>
+}
+
+/** [SPEC-17.2.1] Height the drawing is lifted by at `height` along the path: none for a plant,
+ *  which grows in place. */
+export function liftOf(spec: Pick<AnimalSpec, 'gait'>, height: number): number {
+  return spec.gait === 'grow' ? 0 : height
 }
 
 /** Lengths along a path: `at[i]` is the distance from the hiding place to `path[i]`. Measured in

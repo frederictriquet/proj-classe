@@ -3,8 +3,9 @@
 // of their ground point (`y`, see animals.ts). If an animal moving along its path passed the depth
 // of a still one while their drawings overlap, one would jump in front of the other at sight:
 // `depthCrossings` lists the places where this happens. A flying animal is drawn `height` above its
-// ground point, so its drawing overlaps others higher on the screen than its depth says.
-import { pathLengths, pointAt, type AnimalSpec } from './animal'
+// ground point, so its drawing overlaps others higher on the screen than its depth says. A plant is
+// drawn at its ground point whatever the height of its path [SPEC-17.2.1].
+import { liftOf, pathLengths, pointAt, type AnimalSpec } from './animal'
 import { intersects, type Rect } from './geometry'
 
 /** Offset of the paper shadow of a piece of an animal (see rig.ts), smaller than the decor's: the
@@ -36,11 +37,11 @@ export interface RestingPoint {
  *  actors layer (`usesSlot` false), its hiding and peeking points. */
 export function restingPoints(spec: AnimalSpec): RestingPoint[] {
   const place = spec.path[spec.path.length - 1]!
-  const points = [{ x: place.x, y: place.y, height: place.height ?? 0, facing: spec.spotFacing }]
+  const points = [{ x: place.x, y: place.y, height: liftOf(spec, place.height ?? 0), facing: spec.spotFacing }]
   if (!spec.usesSlot) {
     for (const i of [0, spec.peekIndex]) {
       const p = spec.path[i]!
-      points.push({ x: p.x, y: p.y, height: p.height ?? 0, facing: spec.hideFacing })
+      points.push({ x: p.x, y: p.y, height: liftOf(spec, p.height ?? 0), facing: spec.hideFacing })
     }
   }
   return points
@@ -68,7 +69,7 @@ export function depthCrossings<Id extends string>(animals: Readonly<Record<Id, A
         const b = samples[i]!
         if (Math.sign(a.y - still.y) === Math.sign(b.y - still.y)) continue
         const facing = Math.abs(b.dx) > 0.25 ? (Math.sign(b.dx) as 1 | -1) : undefined
-        if (intersects(drawingBox(spec, b.x, b.y, facing, b.height, weave), stillBox)) {
+        if (intersects(drawingBox(spec, b.x, b.y, facing, liftOf(spec, b.height), weave), stillBox)) {
           problems.push(`${id} at ${b.x.toFixed(0)},${b.y.toFixed(0)} / ${other}`)
         }
       }

@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240">
+  <!-- [SPEC-4.5] [SPEC-8.1] [SPEC-8.3] [SPEC-17.3] Menu thumbnail of « Printemps du silence »: the
+       spring meadow in paper cut-out style, spring palette colours only, with the sun, the cherry
+       tree in leaf, the nest box, a swallow, the straw skep, a bee and the tulips. -->
+  <rect width="320" height="240" fill="#4A98D3"/>
+  <circle cx="276" cy="36" r="22" fill="#F4C430"/>
+  <ellipse cx="262" cy="52" rx="34" ry="13" fill="#FBF6E9"/>
+  <ellipse cx="160" cy="40" rx="36" ry="14" fill="#FBF6E9"/>
+  <path d="M-10 130 C40 104 90 106 140 124 C190 102 250 100 330 120 L330 240 L-10 240 Z" fill="#2E6B3F"/>
+  <path d="M-10 132 L330 132 L330 240 L-10 240 Z" fill="#5AA545"/>
+  <!-- Fence and nest box -->
+  <rect x="130" y="124" width="200" height="5" fill="#6B3F1F"/>
+  <rect x="130" y="136" width="200" height="5" fill="#6B3F1F"/>
+  <rect x="140" y="118" width="6" height="30" fill="#6B3F1F"/>
+  <rect x="178" y="118" width="6" height="30" fill="#6B3F1F"/>
+  <rect x="290" y="118" width="6" height="30" fill="#6B3F1F"/>
+  <rect x="254" y="104" width="6" height="44" fill="#6B3F1F"/>
+  <rect x="240" y="70" width="34" height="40" rx="2" fill="#6B3F1F"/>
+  <path d="M234 74 L257 58 L280 74 L280 79 L257 64 L234 79 Z" fill="#B82E28"/>
+  <circle cx="257" cy="86" r="8" fill="#1B1B1B"/>
+  <!-- Swallow on the fence -->
+  <path d="M160 122 L146 116 L152 122 L146 127 Z" fill="#2C5F9E"/>
+  <ellipse cx="164" cy="120" rx="8" ry="4" fill="#2C5F9E"/>
+  <circle cx="171" cy="118" r="4" fill="#2C5F9E"/>
+  <circle cx="173" cy="120" r="2" fill="#B82E28"/>
+  <!-- Cherry tree with its leaves -->
+  <path d="M26 190 L36 110 L52 110 L62 190 Z" fill="#6B3F1F"/>
+  <path d="M42 114 L14 60 M46 114 L74 54 M44 112 L48 40 M48 90 L96 74" stroke="#6B3F1F" stroke-width="7" stroke-linecap="round"/>
+  <g fill="#2E6B3F">
+    <ellipse cx="14" cy="56" rx="7" ry="4"/>
+    <ellipse cx="76" cy="50" rx="7" ry="4"/>
+    <ellipse cx="50" cy="36" rx="7" ry="4"/>
+    <ellipse cx="100" cy="72" rx="7" ry="4"/>
+    <ellipse cx="28" cy="78" rx="6" ry="3.5"/>
+    <ellipse cx="62" cy="70" rx="6" ry="3.5"/>
+  </g>
+  <!-- Nest with nestlings -->
+  <circle cx="78" cy="76" r="5" fill="#6B3F1F"/>
+  <circle cx="88" cy="74" r="5" fill="#6B3F1F"/>
+  <path d="M78 79 L82 77 L78 82 Z" fill="#F4C430"/>
+  <path d="M70 80 L98 80 L94 90 L74 90 Z" fill="#6B3F1F"/>
+  <!-- Skep -->
+  <rect x="180" y="186" width="70" height="5" fill="#6B3F1F"/>
+  <path d="M184 186 C184 120 246 120 246 186 Z" fill="#F4C430"/>
+  <path d="M190 166 Q215 172 240 166 M187 176 Q215 182 243 176 M196 154 Q215 159 234 154" stroke="#6B3F1F" stroke-width="2" fill="none" opacity="0.5"/>
+  <rect x="205" y="150" width="20" height="16" rx="7" fill="#1B1B1B"/>
+  <!-- Bee -->
+  <ellipse cx="162" cy="150" rx="6" ry="9" fill="#FBF6E9"/>
+  <ellipse cx="160" cy="160" rx="10" ry="7" fill="#F4C430"/>
+  <rect x="157" y="153" width="3" height="14" fill="#1B1B1B"/>
+  <circle cx="171" cy="158" r="5" fill="#F4C430"/>
+  <!-- Tulips -->
+  <path d="M120 230 L118 186 M136 230 L138 178 M152 230 L156 190" stroke="#2E6B3F" stroke-width="3"/>
+  <path d="M110 186 Q110 172 118 172 Q126 172 126 186 Q118 192 110 186 Z" fill="#B82E28"/>
+  <path d="M130 178 Q130 164 138 164 Q146 164 146 178 Q138 184 130 178 Z" fill="#B82E28"/>
+  <path d="M148 190 Q148 176 156 176 Q164 176 164 190 Q156 196 148 190 Z" fill="#B82E28"/>
+  <!-- Molehill with the mole's snout -->
+  <circle cx="288" cy="214" r="6" fill="#1B1B1B"/>
+  <path d="M292 213 L300 214 L292 217 Z" fill="#F2A2BC"/>
+  <path d="M250 244 C254 216 270 208 288 208 C306 208 322 216 326 244 Z" fill="#6B3F1F"/>
+</svg>

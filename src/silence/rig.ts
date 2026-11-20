@@ -9,7 +9,7 @@
 // Coordinates are world units, relative to the point between the feet, the animal facing right.
 import { Container, Graphics } from 'pixi.js'
 import { paperShadow, type PaperColors } from '../art/palette'
-import type { AnimalSpec } from './animal'
+import { liftOf, type AnimalSpec } from './animal'
 import type { Pose } from './animal-model'
 import { PAPER_SHADOW } from './overlap'
 
@@ -194,7 +194,8 @@ export function drawAnimal(spec: AnimalSpec, rig: RigFactory, colors: PaperColor
       ground.scale.set(pose.shadowScale)
       ground.x = ((left + right) / 2) * facing
       figure.scale.x = facing
-      figure.y = pose.bob - pose.height
+      // [SPEC-17.2.1] A plant is never lifted: its rig reads its opening from `pose.height`.
+      figure.y = pose.bob - liftOf(spec, pose.height)
       // Light comes from the top left whatever the facing: the paper shadows change side while
       // the animal is seen edge-on.
       const now = facing < 0 ? -1 : 1
