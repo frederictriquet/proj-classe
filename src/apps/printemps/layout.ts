@@ -182,6 +182,10 @@ export function skepHalfWidth(y: number): number {
 /** [SPEC-17.2] The molehill of the foreground: a dome of earth standing on its centre line. */
 export const MOLEHILL: Ellipse = { x: 1230, y: 1050, rx: 140, ry: 100 }
 
+/** [SPEC-17.2] The pile of dead leaves right of the skep, where the hedgehog wakes up: a dome of
+ *  leaves standing on its centre line, drawn in the foreground. */
+export const LEAF_PILE: Ellipse = { x: 1280, y: 900, rx: 155, ry: 150 }
+
 /** Top of a dome standing on its centre line at `x` (its base when `x` is off the dome). */
 export function domeTop(d: Ellipse, x: number): number {
   return d.y - d.ry * Math.sqrt(Math.max(0, 1 - ((x - d.x) / d.rx) ** 2))
@@ -235,11 +239,11 @@ export const TUFTS: readonly (Point & { size: number })[] = [
 ]
 
 /** [SPEC-17.2] The hideouts. */
-export const HIDEOUT_IDS = ['tulips', 'buds', 'skep', 'nest', 'daffodils', 'nestBox', 'molehill', 'cloud'] as const
+export const HIDEOUT_IDS = ['tulips', 'buds', 'skep', 'nest', 'daffodils', 'nestBox', 'molehill', 'leafPile', 'cloud'] as const
 export type HideoutId = (typeof HIDEOUT_IDS)[number]
 
-/** The hideouts drawn behind the characters in the open, which have a slot. The nest and the
- *  molehill hide the characters of the actors layer behind a shape of the foreground; the plants
+/** The hideouts drawn behind the characters in the open, which have a slot. The nest, the
+ *  molehill and the pile of leaves hide the characters of the actors layer behind a shape of the foreground; the plants
  *  grow in the actors layer. */
 export const SLOT_HIDEOUT_IDS = ['skep', 'nestBox', 'cloud'] as const satisfies readonly HideoutId[]
 export type SlotHideoutId = (typeof SLOT_HIDEOUT_IDS)[number]
@@ -248,12 +252,13 @@ export type SlotHideoutId = (typeof SLOT_HIDEOUT_IDS)[number]
  * Where a hidden character stands: one lying entirely inside this rectangle is invisible. Its feet
  * are on the bottom edge. Sized for the character that hides there, in world units: bee 105×87
  * (skep), tit 81×73 (nest box), the three nestlings 136×52 (nest), sitting mole 125×81
- * (molehill), swallow 115×67 (cloud).
+ * (molehill), curled hedgehog 172×104 (pile of leaves), swallow 115×67 (cloud).
  */
 export const COVERS: Readonly<Record<Exclude<HideoutId, 'tulips' | 'buds' | 'daffodils'>, Rect>> = {
   skep: { x: 880, y: 706, width: 160, height: 87 },
   nestBox: { x: 1120, y: 432, width: 120, height: 84 },
   nest: { x: 352, y: 330, width: 136, height: 54 },
   molehill: { x: 1165, y: 970, width: 130, height: 80 },
+  leafPile: { x: 1190, y: 782, width: 180, height: 104 },
   cloud: { x: 710, y: 156, width: 290, height: 70 },
 }

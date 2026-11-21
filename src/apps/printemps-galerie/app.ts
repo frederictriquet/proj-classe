@@ -1,4 +1,4 @@
-// [SPEC-17.2] [SPEC-8.5] Development gallery of the ten characters of « Printemps du silence » in the
+// [SPEC-17.2] [SPEC-8.5] Development gallery of the eleven characters of « Printemps du silence » in the
 // spring meadow (see src/silence/gallery.ts for the keys and the `window.__galerie` hook).
 import { startGallery } from '../../silence/gallery'
 import type { AnimalId } from '../printemps/animal-data'
@@ -13,6 +13,7 @@ const NAMES: Record<AnimalId, string> = {
   daffodils: 'Jonquilles',
   tit: 'Mésange',
   mole: 'Taupe',
+  hedgehog: 'Hérisson',
   bee2: 'Abeille 2',
   swallow1: 'Hirondelle 1',
   swallow2: 'Hirondelle 2',

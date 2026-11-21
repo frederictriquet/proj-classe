@@ -1,4 +1,4 @@
-// [SPEC-17.2] The ten characters of « Printemps du silence »: their hideout, the path from the hideout
+// [SPEC-17.2] The eleven characters of « Printemps du silence »: their hideout, the path from the hideout
 // to their place in the spring meadow, their size, their speeds and their small activities, as the
 // shared animal model reads them (src/silence/animal.ts). Free of PixiJS.
 //
@@ -11,7 +11,7 @@ import { BUD_POINTS, COVERS, NEST, NEST_BOX, RAIL_TOP, SKEP_BOARD, SKEP_HOLE, tu
 
 /** [SPEC-9.4.1] [SPEC-17.2] [SPEC-17.2.2] From the least to the most timid: the order in which they
  *  come out. The bees come after the tulips they land on. */
-export const ANIMAL_IDS = ['tulips', 'buds', 'bee1', 'nestlings', 'daffodils', 'tit', 'mole', 'bee2', 'swallow1', 'swallow2'] as const
+export const ANIMAL_IDS = ['tulips', 'buds', 'bee1', 'nestlings', 'daffodils', 'tit', 'mole', 'hedgehog', 'bee2', 'swallow1', 'swallow2'] as const
 export type AnimalId = (typeof ANIMAL_IDS)[number]
 export const PLANT_IDS = ['tulips', 'buds', 'daffodils'] as const satisfies readonly AnimalId[]
 
@@ -37,6 +37,7 @@ export const EXTENTS = {
   nestlings: { left: -62, right: 62, top: -54 },
   tit: { left: -42, right: 40, top: -64 },
   mole: { left: -60, right: 60, top: -78 },
+  hedgehog: { left: -80, right: 92, top: -104 },
   swallow: { left: -58, right: 52, top: -60 },
 } as const satisfies Record<string, Extent>
 
@@ -275,6 +276,33 @@ export const ANIMALS: Readonly<Record<AnimalId, PrintempsAnimalSpec>> = {
     sleepCrouch: 0.6,
     grazeCrouch: 0.2,
     activities: { rest: 2, graze: 2, scratch: 2, sleep: 2, look: 2 },
+  },
+  // [SPEC-17.2] Curled up under the pile of dead leaves; its snout and eyes out of the pile's left
+  // side, then out on the meadow, in front of the skep.
+  hedgehog: {
+    id: 'hedgehog',
+    hideout: 'leafPile',
+    usesSlot: false,
+    path: [
+      { x: 1284, y: COVERS.leafPile.y + COVERS.leafPile.height, crouch: 0.3 },
+      { x: 1165, y: 888, crouch: 0.15 },
+      { x: 1120, y: 897, crouch: 0 },
+      { x: 1030, y: 935, crouch: 0 },
+    ],
+    peekIndex: 1,
+    exitIndex: 2,
+    hideFacing: -1,
+    spotFacing: -1,
+    frontal: false,
+    extent: EXTENTS.hedgehog,
+    speed: { peek: 35, walk: 60, flee: 420 },
+    peekPause: 1.6,
+    gait: 'walk',
+    strideLength: 46,
+    bounce: 3,
+    sleepCrouch: 0.6,
+    grazeCrouch: 0.1,
+    activities: { rest: 2, graze: 3, scratch: 1, sleep: 2, look: 1 },
   },
   bee2: bee('bee2', 975, 2),
   swallow1: swallow('swallow1', 770, 660, 0),

@@ -6,7 +6,7 @@
 //
 // For the characters: the skep, the nest box and the swallows' cloud each have a slot, a container
 // right behind the shape that hides them; the slots of the skep and of the nest box are shown only
-// through their hole. The front of the nest and the molehill are in the foreground: they hide the
+// through their hole. The front of the nest, the molehill and the pile of leaves are in the foreground: they hide the
 // characters of the actors layer, drawn in front of the middle plane and behind the foreground.
 // Everything is in world units (layout.ts): `resize` scales the whole landscape.
 import { Container, Graphics } from 'pixi.js'
@@ -22,6 +22,7 @@ import {
   FAR_VALLEY,
   FENCE,
   HORIZON_Y,
+  LEAF_PILE,
   MOLEHILL,
   NEST,
   NEST_BOX,
@@ -314,6 +315,65 @@ function drawMolehill(): Container {
   return hill
 }
 
+/** A leaf `length` long and `width` wide, centred on `x, y` and turned by `angle`, as a polygon. */
+function leafShape(x: number, y: number, length: number, width: number, angle: number): PathBuilder {
+  return (g) => {
+    const cos = Math.cos(angle)
+    const sin = Math.sin(angle)
+    const points: number[] = []
+    for (let i = 0; i < 24; i++) {
+      // Along the leaf from one tip to the other and back, its half width rounded in between.
+      const t = i < 12 ? -1 + i / 6 : 1 - (i - 12) / 6
+      const u = (t * length) / 2
+      const v = ((i < 12 ? 1 : -1) * width * (1 - t * t)) / 2
+      points.push(x + u * cos - v * sin, y + u * sin + v * cos)
+    }
+    return g.poly(points)
+  }
+}
+
+/** [SPEC-17.2] The pile of dead leaves: a brown dome edged with leaves, a few yellow leaves and two
+ *  twigs on top. */
+function drawLeafPile(): Container {
+  const pile = new Container()
+  const { x, y, rx, ry } = LEAF_PILE
+  const rand = seededRandom(61)
+  // Leaves along the top of the dome make its outline uneven.
+  const edge: PathBuilder = (g) => {
+    ellipseDome(LEAF_PILE)(g)
+    for (let i = 0; i <= 10; i++) {
+      const a = Math.PI + 0.12 + ((Math.PI - 0.24) * i) / 10
+      leafShape(x + rx * 0.97 * Math.cos(a), y + ry * 0.97 * Math.sin(a), 56, 26, a + Math.PI / 2 + (rand() - 0.5) * 0.8)(g)
+    }
+    return g
+  }
+  pile.addChild(piece(edge, PALETTE.brown, BIG_SHADOW))
+  const twigs = new Graphics()
+    .moveTo(x - 30, y - ry + 20)
+    .lineTo(x - 70, y - ry - 30)
+    .moveTo(x - 52, y - ry - 6)
+    .lineTo(x - 40, y - ry - 26)
+    .moveTo(x + 40, y - ry + 24)
+    .lineTo(x + 92, y - ry - 14)
+    .stroke({ width: 6, color: PALETTE.brown, cap: 'round' })
+  pile.addChild(twigs)
+  const darker = new Graphics()
+  const yellow = new Graphics()
+  const veins = new Graphics()
+  for (let i = 0; i < 16; i++) {
+    // Spread over the dome, away from its edge.
+    const a = Math.PI + 0.25 + (Math.PI - 0.5) * rand()
+    const r = 0.25 + 0.55 * rand()
+    const lx = x + rx * r * Math.cos(a)
+    const ly = y + ry * r * Math.sin(a) + 8
+    const angle = rand() * Math.PI
+    leafShape(lx, ly, 44, 22, angle)(i % 3 === 0 ? yellow : darker)
+    veins.moveTo(lx - 18 * Math.cos(angle), ly - 18 * Math.sin(angle)).lineTo(lx + 18 * Math.cos(angle), ly + 18 * Math.sin(angle))
+  }
+  pile.addChild(darker.fill({ color: PALETTE.ink, alpha: 0.18 }), yellow.fill(PALETTE.yellow), veins.stroke({ width: 2, color: PALETTE.ink, alpha: 0.3 }))
+  return pile
+}
+
 /** A tuft of grass: a few blades of leaf green, swaying from its foot. */
 function drawTuft(x: number, y: number, size: number, seed: number): Container {
   const tuft = pivoted({ x, y })
@@ -351,7 +411,7 @@ export function createLandscape(): Landscape {
   middle.addChild(drawTree(), crown, drawSkep(slots.skep))
 
   const foreground = new Container()
-  foreground.addChild(drawNestFront(), drawMolehill())
+  foreground.addChild(drawNestFront(), drawMolehill(), drawLeafPile())
   const swaying: Swaying[] = TUFTS.map((t, i) => {
     const node = drawTuft(t.x, t.y, t.size, 40 + i)
     foreground.addChild(node)

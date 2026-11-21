@@ -71,6 +71,8 @@ describe('palette of spring [SPEC-8.3] [SPEC-17.5]', () => {
       ['pink', 'brown'], // nestlings' gapes
       ['ink', 'grass'], // the mole on the meadow
       ['pink', 'ink'], // the mole's snout and hands
+      ['cream', 'grass'], // the hedgehog's face on the meadow
+      ['yellow', 'brown'], // dead leaves on their pile
     ]
     for (const [a, b] of pairs) expect(contrastRatio(PALETTE[a], PALETTE[b]), `${a} / ${b}`).toBeGreaterThanOrEqual(1.7)
   })

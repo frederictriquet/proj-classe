@@ -1,5 +1,5 @@
 // [SPEC-17.4] [SPEC-8.5] [SPEC-8.3.2] Reward of « Printemps du silence », drawn with PixiJS: once the
-// ten characters are settled, the cherry tree covers itself with blossoms one by one, petals fall
+// eleven characters are settled, the cherry tree covers itself with blossoms one by one, petals fall
 // slowly, the cloud slides away from the sun and the light warms up. It plays no sound
 // [SPEC-17.1]. When it shows and how fast it fades are shared (src/silence/reward.ts). Only
 // position, scale and transparency change: nothing blinks.

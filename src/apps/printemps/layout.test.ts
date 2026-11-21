@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { contains, insideEllipse, SAFE_ZONE, viewport, type Rect } from '../../silence/geometry'
 import { AMBIENT } from './ambient'
-import { COVERS, DECOR_BOUNDS, MOLEHILL, NEST, NEST_BOX, nestHalfWidth, SKEP, SKEP_HOLE, skepHalfWidth, SWALLOW_CLOUD } from './layout'
+import { COVERS, DECOR_BOUNDS, LEAF_PILE, MOLEHILL, NEST, NEST_BOX, nestHalfWidth, SKEP, SKEP_HOLE, skepHalfWidth, SWALLOW_CLOUD } from './layout'
 
 /** True when the rectangle lies inside the front of the nest. */
 const insideNest = (r: Rect): boolean =>
@@ -31,6 +31,9 @@ describe('hideouts [SPEC-17.2] [SPEC-17.3] [SPEC-8.6]', () => {
   it('covers the hiding character with the shape of its hideout', () => {
     expect(insideEllipse(COVERS.cloud, SWALLOW_CLOUD, 0.99)).toBe(true)
     expect(insideEllipse(COVERS.molehill, MOLEHILL, 0.99)).toBe(true)
+    expect(insideEllipse(COVERS.leafPile, LEAF_PILE, 0.99)).toBe(true)
+    // The pile stands on a base below the feet of the hidden hedgehog: it hides their shadow.
+    expect(LEAF_PILE.y).toBeGreaterThan(COVERS.leafPile.y + COVERS.leafPile.height + 8)
     expect(insideNest(COVERS.nest)).toBe(true)
     expect(COVERS.nest.y).toBeGreaterThanOrEqual(NEST.rim)
     // Inside the skep and the nest box, below the sill of their hole: their slot, shown only

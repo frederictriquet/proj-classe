@@ -1,7 +1,7 @@
-// [SPEC-8.1] [SPEC-8.2] [SPEC-8.3] [SPEC-17.2] The rigs of the ten characters of spring, drawn in
+// [SPEC-8.1] [SPEC-8.2] [SPEC-8.3] [SPEC-17.2] The rigs of the eleven characters of spring, drawn in
 // code in the paper cut-out style of the meadow with the shared builder (src/silence/rig.ts):
 // separate pieces moved by the shared animal model. The bees follow the drawing of the hive, the
-// tit the robin of winter, in the spring palette.
+// tit the robin of winter, the hedgehog the one of the forest, in the spring palette.
 //
 // [SPEC-17.2.1] The plants do not move: their rigs read how far they have opened from the pose's
 // height (see `PLANT_HEIGHTS`), closing halfway as they sleep (the pose's crouch).
@@ -379,6 +379,93 @@ function mole(b: Builder, figure: Container): Rig {
   }
 }
 
+/** [SPEC-17.2] The hedgehog, side view, as the one of the forest: a dome of brown spines, a cream
+ *  pointed face with an ink nose and button eyes. */
+function hedgehog(b: Builder, figure: Container): Rig {
+  const { brown, cream, ink } = PALETTE
+  const tail = b.joint(figure, -72, -18)
+  b.cut(tail, oval(-75, -16, 8, 7), brown)
+  const farBack = b.leg(figure, -42, -16, 14, brown, Math.PI, 0.5, { dim: 0.25 })
+  const farFront = b.leg(figure, 14, -16, 14, brown, 0, 0.5, { dim: 0.25 })
+  const body = b.joint(figure, -10, -40)
+  // Spines: a dome with triangular teeth, closed along the belly.
+  b.cut(
+    body,
+    (g) => {
+      const teeth = 12
+      const from = -0.25
+      const to = Math.PI + 0.35
+      for (let i = 0; i <= 2 * teeth; i++) {
+        const angle = from + ((to - from) * i) / (2 * teeth)
+        const radius = i % 2 ? 1.12 : 0.92
+        const x = -10 + 64 * radius * Math.cos(angle)
+        const y = -36 - 54 * radius * Math.sin(angle)
+        if (i === 0) g.moveTo(x, y)
+        else g.lineTo(x, y)
+      }
+      return g.lineTo(-66, -8).quadraticCurveTo(-14, -2, 38, -10).closePath()
+    },
+    brown,
+  )
+  // A few lighter tips of spines, in rows along the back.
+  const tips = new Graphics()
+  for (const [x, y, angle] of [
+    [-48, -62, 2.3],
+    [-30, -76, 1.9],
+    [-8, -80, 1.6],
+    [14, -74, 1.2],
+    [-38, -44, 2.4],
+    [-18, -58, 1.9],
+    [4, -60, 1.4],
+  ] as const)
+    tips.moveTo(x, y).lineTo(x + 14 * Math.cos(angle), y - 14 * Math.sin(angle))
+  body.addChild(tips.stroke({ width: 3, color: cream, alpha: 0.35, cap: 'round' }))
+  const nearBack = b.leg(figure, -30, -16, 14, brown, 0, 0.5)
+  const nearFront = b.leg(figure, 26, -16, 14, brown, Math.PI, 0.5)
+  const head = b.joint(figure, 30, -34)
+  const ear = b.joint(head, 26, -58)
+  b.cut(ear, oval(24, -62, 9, 9), cream)
+  b.cut(
+    head,
+    (g) =>
+      g
+        .moveTo(14, -60)
+        .bezierCurveTo(40, -70, 72, -48, 88, -26)
+        .quadraticCurveTo(92, -15, 79, -13)
+        .bezierCurveTo(60, -9, 30, -5, 14, -12)
+        .quadraticCurveTo(0, -36, 14, -60)
+        .closePath(),
+    cream,
+  )
+  head.addChild(new Graphics().circle(87, -22, 7).fill(ink))
+  const eyes = [b.eye(head, 44, -42, 8, ink, 8), b.eye(head, 62, -40, 7.5, ink, 7.5)]
+  return {
+    upper: [
+      { node: tail, baseY: -18 },
+      { node: body, baseY: -40 },
+      { node: head, baseY: -34 },
+    ],
+    drop: 8,
+    body,
+    head: { node: head, gain: 0.6 },
+    ears: [{ node: ear, rest: 0, up: -0.3, back: 0.5 }],
+    eyes,
+    legs: [
+      { ...farBack, phase: Math.PI },
+      { ...farFront, phase: 0 },
+      { ...nearBack, phase: 0 },
+      { ...nearFront, phase: Math.PI },
+    ],
+    tail: { node: tail, rest: 0 },
+    scratch: { node: nearBack.node, angle: -1.3 },
+    scratchTilt: 0.15,
+    // Curled up, the head draws back into the spines.
+    extra: (pose) => {
+      head.x = 30 - 10 * pose.crouch
+    },
+  }
+}
+
 /** [SPEC-17.2] The blue tit, side view, as the robin of winter: a blue cap and wings, a white face
  *  with an ink stripe through the eye, a yellow breast and a green back. */
 function tit(b: Builder, figure: Container): Rig {
@@ -480,6 +567,7 @@ export const RIGS: Readonly<Record<AnimalId, RigFactory>> = {
   daffodils: daffodils(DAFFODILS),
   tit,
   mole,
+  hedgehog,
   bee2: bee,
   swallow1: swallow,
   swallow2: swallow,

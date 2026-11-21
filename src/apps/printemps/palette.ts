@@ -9,7 +9,8 @@
 export const PALETTE = {
   /** Pupils, the mole, the bees' stripes, the holes of the nest box and the skep, paper shadows. */
   ink: '#1B1B1B',
-  /** Eye whites, clouds, bee wings, swallow bellies, the tit's cheeks, cherry blossoms, petals. */
+  /** Eye whites, clouds, bee wings, swallow bellies, the tit's cheeks, the hedgehog's face, cherry
+   *  blossoms, petals. */
   cream: '#FBF6E9',
   /** Spring sky. */
   sky: '#4A98D3',
@@ -17,11 +18,12 @@ export const PALETTE = {
   grass: '#5AA545',
   /** The far hills, leaves and stems. */
   leaf: '#2E6B3F',
-  /** Trunk and branches, the fence, the nest box, the nest, the nestlings, the molehill. */
+  /** Trunk and branches, the fence, the nest box, the nest, the nestlings, the molehill, the
+   *  hedgehog and the pile of dead leaves. */
   brown: '#6B3F1F',
   /** Tulips, the swallows' throats, the roof of the nest box. */
   red: '#B82E28',
-  /** Sun, daffodils, bees, the nestlings' beaks, the tit's breast, the straw skep. */
+  /** Sun, daffodils, bees, the nestlings' beaks, the tit's breast, the straw skep, dead leaves. */
   yellow: '#F4C430',
   /** The swallows' backs, the tit's cap and wings. */
   blue: '#2C5F9E',

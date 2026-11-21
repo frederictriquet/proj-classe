@@ -1,5 +1,5 @@
 // [SPEC-9.8] [SPEC-17] « Printemps du silence » as the shared code of the activities of silence sees
-// it: the ten characters of the spring meadow, their rigs, the meadow, the reward and the colours
+// it: the eleven characters of the spring meadow, their rigs, the meadow, the reward and the colours
 // of the palette.
 import type { SilenceWorld } from '../../silence/world'
 import { RIGS } from './animal-art'

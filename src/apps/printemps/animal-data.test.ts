@@ -3,7 +3,7 @@ import { liftOf } from '../../silence/animal'
 import { contains, intersects, lobedBounds, SAFE_ZONE, type Rect } from '../../silence/geometry'
 import { depthCrossings, drawingBox, restingPoints } from '../../silence/overlap'
 import { ANIMAL_IDS, ANIMALS, PLANT_HEIGHTS, PLANT_IDS, type AnimalId } from './animal-data'
-import { COVERS, domeTop, FAR_VALLEY, HIDEOUT_IDS, MOLEHILL, NEST, NEST_BOX, SKEP_HOLE, SUN, SUN_CLOUD, SWALLOW_CLOUD, tulipTop } from './layout'
+import { COVERS, domeTop, FAR_VALLEY, HIDEOUT_IDS, LEAF_PILE, MOLEHILL, NEST, NEST_BOX, SKEP_HOLE, SUN, SUN_CLOUD, SWALLOW_CLOUD, tulipTop } from './layout'
 
 /** Box of a character at a point of its path, facing `facing` (right for one seen from the front,
  *  drawn as it is); a plant is never lifted. */
@@ -19,10 +19,10 @@ const placeBox = (id: AnimalId): Rect => {
 
 describe('characters [SPEC-17.2]', () => {
   it('come out from the least to the most timid, the bees after the tulips [SPEC-9.4.1] [SPEC-17.2.2]', () => {
-    expect(ANIMAL_IDS).toEqual(['tulips', 'buds', 'bee1', 'nestlings', 'daffodils', 'tit', 'mole', 'bee2', 'swallow1', 'swallow2'])
+    expect(ANIMAL_IDS).toEqual(['tulips', 'buds', 'bee1', 'nestlings', 'daffodils', 'tit', 'mole', 'hedgehog', 'bee2', 'swallow1', 'swallow2'])
   })
 
-  it('use the eight hideouts; the bees share the skep, the swallows the cloud', () => {
+  it('use the nine hideouts; the bees share the skep, the swallows the cloud', () => {
     const used = ANIMAL_IDS.map((id) => ANIMALS[id].hideout)
     expect(new Set(used)).toEqual(new Set(HIDEOUT_IDS))
     expect(used.filter((h, i) => used.indexOf(h) !== i)).toEqual(['skep', 'cloud'])
@@ -65,6 +65,20 @@ describe('characters [SPEC-17.2]', () => {
     // Clear of the molehill, which would hide it.
     const place = placeBox('mole')
     expect(place.x + place.width).toBeLessThan(MOLEHILL.x - MOLEHILL.rx)
+  })
+
+  it('hedgehog: curled up under the pile of leaves, peeks with its face out of its left side, settles clear of it', () => {
+    const hidden = boxAt('hedgehog', 0, -1)
+    expect(contains(COVERS.leafPile, { ...hidden, height: hidden.height - 7 }), JSON.stringify(hidden)).toBe(true)
+    // Facing left, its eyes about 40 above its feet and 44 behind the point between them: out of
+    // the pile's side.
+    const peek = ANIMALS.hedgehog.path[1]!
+    const eyeY = peek.y - 40
+    const pileLeft = LEAF_PILE.x - LEAF_PILE.rx * Math.sqrt(1 - ((LEAF_PILE.y - eyeY) / LEAF_PILE.ry) ** 2)
+    expect(peek.x - 44).toBeLessThan(pileLeft)
+    // In front of the pile's depth only once clear of it, which would hide it.
+    const place = placeBox('hedgehog')
+    expect(place.x + place.width).toBeLessThan(LEAF_PILE.x - LEAF_PILE.rx)
   })
 
   it('nestlings: below the rim of the nest when hidden, their heads over it once out [SPEC-17.2.3]', () => {
