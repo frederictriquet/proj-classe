@@ -1,4 +1,4 @@
-// [SPEC-16.2] The ten characters of « Hiver du silence »: their hideout, the path from the hideout to
+// [SPEC-16.2] The eleven characters of « Hiver du silence »: their hideout, the path from the hideout to
 // their place in the winter landscape, their size, their speeds and their small activities, as the
 // shared animal model reads them (src/silence/animal.ts). Free of PixiJS.
 //
@@ -9,8 +9,9 @@ import { pathLengths, type AnimalSpec, type Waypoint } from '../../silence/anima
 import { branchTopY, type HideoutId } from './layout'
 
 /** [SPEC-9.4.1] [SPEC-16.2] [SPEC-16.2.2] From the least to the most timid: the order in which they
- *  come out. The robin comes right after the snowman, on whose hat it perches. */
-export const ANIMAL_IDS = ['rabbit', 'squirrel', 'redFox', 'whiteFox', 'snowman', 'robin', 'elf', 'reindeer', 'owl', 'santa'] as const
+ *  come out. The robin comes right after the snowman, on whose hat it perches; the gingerbread man
+ *  comes out of the house before Santa. */
+export const ANIMAL_IDS = ['rabbit', 'squirrel', 'redFox', 'whiteFox', 'snowman', 'robin', 'elf', 'reindeer', 'owl', 'gingerbread', 'santa'] as const
 export type AnimalId = (typeof ANIMAL_IDS)[number]
 
 /** A character of the winter landscape and its hideout. */
@@ -278,6 +279,34 @@ export const ANIMALS: Readonly<Record<AnimalId, HiverAnimalSpec>> = {
     sleepCrouch: 0.2,
     grazeCrouch: 0,
     activities: { rest: 2, graze: 0, scratch: 2, sleep: 3, look: 3 },
+  },
+  // [SPEC-16.2] Inside the house, right of the door, like Santa; into the doorway, then on the snow
+  // between the doorstep and the Christmas tree, clear of Santa's way out.
+  gingerbread: {
+    id: 'gingerbread',
+    hideout: 'house',
+    usesSlot: true,
+    path: [
+      { x: 1098, y: 622, crouch: 0 },
+      { x: 1010, y: 622, crouch: 0 },
+      { x: 955, y: 622, crouch: 0 },
+      { x: 960, y: 660, crouch: 0 },
+      { x: 1090, y: 658, crouch: 0 },
+    ],
+    peekIndex: 1,
+    exitIndex: 2,
+    hideFacing: -1,
+    spotFacing: -1,
+    frontal: false,
+    extent: { left: -62, right: 62, top: -170 },
+    speed: { peek: 35, walk: 70, flee: 650 },
+    peekPause: 1.8,
+    gait: 'walk',
+    strideLength: 44,
+    bounce: 6,
+    sleepCrouch: 0.3,
+    grazeCrouch: 0.1,
+    activities: { rest: 2, graze: 1, scratch: 3, sleep: 1, look: 3 },
   },
   // Inside the house, right of the door; into the doorway, then onto his doorstep.
   santa: {

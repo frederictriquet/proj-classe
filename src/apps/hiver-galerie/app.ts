@@ -1,4 +1,4 @@
-// [SPEC-16.2] [SPEC-8.5] Development gallery of the ten characters of « Hiver du silence » in the
+// [SPEC-16.2] [SPEC-8.5] Development gallery of the eleven characters of « Hiver du silence » in the
 // winter landscape (see src/silence/gallery.ts for the keys and the `window.__galerie` hook).
 import { startGallery } from '../../silence/gallery'
 import type { AnimalId } from '../hiver/animal-data'
@@ -15,6 +15,7 @@ const NAMES: Record<AnimalId, string> = {
   elf: 'Lutin',
   reindeer: 'Renne',
   owl: 'Harfang',
+  gingerbread: "Bonhomme en pain d'épices",
   santa: 'Père Noël',
 }
 

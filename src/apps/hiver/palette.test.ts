@@ -71,6 +71,7 @@ describe('palette of winter [SPEC-8.3] [SPEC-16.5]', () => {
       ['red', 'ink'], // Santa in the doorway
       ['fir', 'ink'], // elf's tunic, by the dark doorway and the cave
       ['skin', 'red'], // faces under the red hats
+      ['cream', 'orange'], // the gingerbread man's icing
     ]
     for (const [a, b] of pairs) expect(contrastRatio(PALETTE[a], PALETTE[b]), `${a} / ${b}`).toBeGreaterThanOrEqual(1.7)
   })

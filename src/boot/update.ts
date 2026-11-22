@@ -1,4 +1,4 @@
-// [SPEC-3.3] [SPEC-3.4] [SPEC-3.6] [SPEC-3.9.2] New versions of the app: looked for at each launch
+// [SPEC-3.3] [SPEC-3.4] [SPEC-3.6] [SPEC-3.9.2] [SPEC-3.10] New versions of the app: looked for at each launch
 // with network, applied (page reload) on the menu only, reported on the menu. Part of the
 // bootstrap, so it must not import the rest of the app at run time. The browser glue is in
 // register.ts; this module holds the logic and the state the menu shows.
@@ -97,20 +97,30 @@ export interface UpdateLookup {
 /** Cause shown when the new version was found but could not be stored. */
 export const INSTALL_FAILED = 'la nouvelle version a été trouvée mais son téléchargement a échoué.'
 
+/** Outcome of a search for a new version. */
+export type UpdateCheckResult =
+  | { kind: 'up-to-date' }
+  /** The new version is installed; the service worker takes over and the UpdateGate reloads. */
+  | { kind: 'downloaded' }
+  /** The server could not be reached: normal offline use [SPEC-3.4]. */
+  | { kind: 'offline' }
+  | { kind: 'failed'; cause: string }
+
 /**
- * [SPEC-3.3] [SPEC-3.6] Looks for a new version and follows its download. Resolves with the
- * cause of a failure to show, or null: up to date, new version downloaded, or no network. Without
- * network nothing is reported: it is the normal offline use [SPEC-3.4].
+ * [SPEC-3.3] [SPEC-3.6] [SPEC-3.10] Looks for a new version and follows its download.
+ * `onDownload` is called when a new version was found and its download starts.
  */
-export async function lookForUpdate(lookup: UpdateLookup): Promise<string | null> {
+export async function lookForUpdate(lookup: UpdateLookup, onDownload: () => void = () => {}): Promise<UpdateCheckResult> {
   try {
     await lookup.update()
   } catch (error) {
-    return (await lookup.serverReachable()) ? errorMessage(error) : null
+    return (await lookup.serverReachable()) ? { kind: 'failed', cause: errorMessage(error) } : { kind: 'offline' }
   }
   const worker = lookup.installing()
-  if (!worker || (await installSucceeds(worker))) return null
-  return (await lookup.serverReachable()) ? INSTALL_FAILED : null
+  if (!worker) return { kind: 'up-to-date' }
+  onDownload()
+  if (await installSucceeds(worker)) return { kind: 'downloaded' }
+  return (await lookup.serverReachable()) ? { kind: 'failed', cause: INSTALL_FAILED } : { kind: 'offline' }
 }
 
 /** Resolves true once the worker is installed, false if it is discarded before. */
@@ -131,8 +141,46 @@ export function updateFailureText(cause: string, versionLabel: string): string {
   return `La mise à jour a échoué : ${cause}\nVersion restée en service : ${versionLabel}`
 }
 
+/** [SPEC-3.10.1] Where the search for a new version stands. `manual` is true when the adult asked
+ *  for it with the button [SPEC-3.10.2]. */
+export interface UpdateCheck {
+  phase: 'idle' | 'checking' | 'downloading' | 'up-to-date' | 'downloaded' | 'offline' | 'failed'
+  manual: boolean
+}
+
+/** True while a search runs or once a version is downloaded: the button has nothing to do. */
+export function updateCheckBusy(check: UpdateCheck): boolean {
+  return check.phase === 'checking' || check.phase === 'downloading' || check.phase === 'downloaded'
+}
+
+/**
+ * [SPEC-3.10.1] [SPEC-3.10.3] Text shown at the bottom of the menu, or null for nothing.
+ * @param appActive an app runs on the other screen: a downloaded version waits for the menu.
+ */
+export function updateCheckLabel(check: UpdateCheck, appActive: boolean): string | null {
+  switch (check.phase) {
+    case 'checking':
+      return "Recherche d'une mise à jour…"
+    case 'downloading':
+      return 'Téléchargement de la nouvelle version…'
+    case 'downloaded':
+      return appActive
+        ? "Nouvelle version prête : elle s'appliquera au retour au menu"
+        : 'Nouvelle version téléchargée : redémarrage…'
+    case 'up-to-date':
+      return 'Application à jour'
+    case 'offline':
+      return check.manual ? 'Pas de connexion internet : recherche impossible' : null
+    case 'idle':
+    case 'failed':
+      // A failure shows in its own banner [SPEC-3.6].
+      return null
+  }
+}
+
 // State shown by the menu, set by register.ts and src/main.ts.
 
+let updateCheck: UpdateCheck = { phase: 'idle', manual: false }
 let failureCause: string | null = null
 let installedUntil = 0
 const listeners = new Set<() => void>()
@@ -144,13 +192,46 @@ export function getUpdateFailure(): string | null {
 
 export function reportUpdateFailure(cause: string): void {
   failureCause = cause
+  notify()
+}
+
+/** [SPEC-3.10.1] Current state of the search for a new version. */
+export function getUpdateCheck(): UpdateCheck {
+  return updateCheck
+}
+
+function setUpdateCheck(next: UpdateCheck): void {
+  updateCheck = next
+  notify()
+}
+
+/**
+ * [SPEC-3.3] [SPEC-3.6] [SPEC-3.10] Searches for a new version and publishes its progress to the
+ * menu. Does nothing while a search runs or once a version is downloaded. A new search clears the
+ * previous failure [SPEC-3.10.3].
+ */
+export async function runUpdateCheck(lookup: UpdateLookup, manual: boolean): Promise<void> {
+  if (updateCheckBusy(updateCheck)) return
+  failureCause = null
+  setUpdateCheck({ phase: 'checking', manual })
+  let result: UpdateCheckResult
+  try {
+    result = await lookForUpdate(lookup, () => setUpdateCheck({ phase: 'downloading', manual }))
+  } catch (error) {
+    result = { kind: 'failed', cause: errorMessage(error) }
+  }
+  if (result.kind === 'failed') failureCause = result.cause
+  setUpdateCheck({ phase: result.kind, manual })
+}
+
+function notify(): void {
   for (const listener of listeners) listener()
 }
 
 /** [SPEC-3.4] « Mise à jour installée » shows on the menu for `durationMs` from now. */
 export function announceUpdateInstalled(durationMs: number): void {
   installedUntil = Date.now() + durationMs
-  for (const listener of listeners) listener()
+  notify()
 }
 
 /** Milliseconds left to show « Mise à jour installée », 0 when it is not shown. */

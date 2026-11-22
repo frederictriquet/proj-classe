@@ -1,8 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { KeyValueStorage } from '../settings/settings'
 import {
+  getUpdateCheck,
+  getUpdateFailure,
   INSTALL_FAILED,
   lookForUpdate,
+  onUpdateChange,
+  reportUpdateFailure,
+  runUpdateCheck,
+  updateCheckLabel,
   pageIsOutdated,
   UpdateGate,
   updateFailureText,
@@ -163,47 +169,103 @@ function lookup(options: { update: () => Promise<unknown>; installing?: FakeWork
   }
 }
 
-describe('lookForUpdate [SPEC-3.6]', () => {
+describe('lookForUpdate [SPEC-3.6] [SPEC-3.10]', () => {
   const scriptError = new TypeError('A bad HTTP response code (404) was received when fetching the script.')
 
-  it('reports nothing when the app is up to date', async () => {
-    expect(await lookForUpdate(lookup({ update: () => Promise.resolve(), reachable: true }))).toBeNull()
+  it('says up to date when the server has no new version', async () => {
+    expect(await lookForUpdate(lookup({ update: () => Promise.resolve(), reachable: true }))).toEqual({ kind: 'up-to-date' })
   })
 
-  it('reports nothing when the check fails without network', async () => {
+  it('says offline when the check fails without network', async () => {
     const result = lookForUpdate(lookup({ update: () => Promise.reject(scriptError), reachable: false }))
-    expect(await result).toBeNull()
+    expect(await result).toEqual({ kind: 'offline' })
   })
 
   it('reports the cause when the check fails while the server answers', async () => {
     const result = lookForUpdate(lookup({ update: () => Promise.reject(scriptError), reachable: true }))
-    expect(await result).toBe(`TypeError : ${scriptError.message}`)
+    expect(await result).toEqual({ kind: 'failed', cause: `TypeError : ${scriptError.message}` })
   })
 
-  it('reports nothing once the new version is downloaded', async () => {
+  it('tells when the download starts and says downloaded once it ends', async () => {
     const worker = new FakeWorker('installing')
-    const result = lookForUpdate(lookup({ update: () => Promise.resolve(), installing: worker, reachable: true }))
+    const onDownload = vi.fn()
+    const result = lookForUpdate(lookup({ update: () => Promise.resolve(), installing: worker, reachable: true }), onDownload)
+    await Promise.resolve()
+    expect(onDownload).toHaveBeenCalledTimes(1)
     worker.moveTo('installed')
-    expect(await result).toBeNull()
+    expect(await result).toEqual({ kind: 'downloaded' })
   })
 
   it('reports a failed download while the server answers', async () => {
     const worker = new FakeWorker('installing')
     const result = lookForUpdate(lookup({ update: () => Promise.resolve(), installing: worker, reachable: true }))
     worker.moveTo('redundant')
-    expect(await result).toBe(INSTALL_FAILED)
+    expect(await result).toEqual({ kind: 'failed', cause: INSTALL_FAILED })
   })
 
-  it('reports nothing when the download stops because the network went away', async () => {
+  it('says offline when the download stops because the network went away', async () => {
     const worker = new FakeWorker('installing')
     const result = lookForUpdate(lookup({ update: () => Promise.resolve(), installing: worker, reachable: false }))
     worker.moveTo('redundant')
-    expect(await result).toBeNull()
+    expect(await result).toEqual({ kind: 'offline' })
   })
 
   it('handles a download that already ended before the check returned', async () => {
     const worker = new FakeWorker('activated')
-    expect(await lookForUpdate(lookup({ update: () => Promise.resolve(), installing: worker, reachable: true }))).toBeNull()
+    expect(await lookForUpdate(lookup({ update: () => Promise.resolve(), installing: worker, reachable: true }))).toEqual({
+      kind: 'downloaded',
+    })
+  })
+})
+
+describe('updateCheckLabel [SPEC-3.10]', () => {
+  it('shows the search and the download in progress', () => {
+    expect(updateCheckLabel({ phase: 'checking', manual: false }, false)).toBe("Recherche d'une mise à jour…")
+    expect(updateCheckLabel({ phase: 'downloading', manual: true }, false)).toBe('Téléchargement de la nouvelle version…')
+  })
+
+  it('says up to date', () => {
+    expect(updateCheckLabel({ phase: 'up-to-date', manual: false }, false)).toBe('Application à jour')
+  })
+
+  it('says when a downloaded version applies: at once on the menu, later while an app runs', () => {
+    expect(updateCheckLabel({ phase: 'downloaded', manual: true }, false)).toBe('Nouvelle version téléchargée : redémarrage…')
+    expect(updateCheckLabel({ phase: 'downloaded', manual: true }, true)).toBe(
+      "Nouvelle version prête : elle s'appliquera au retour au menu",
+    )
+  })
+
+  it('shows nothing offline after the launch search, a message after a click [SPEC-3.10.3]', () => {
+    expect(updateCheckLabel({ phase: 'offline', manual: false }, false)).toBeNull()
+    expect(updateCheckLabel({ phase: 'offline', manual: true }, false)).toBe('Pas de connexion internet : recherche impossible')
+  })
+
+  it('leaves a failure to its banner and shows nothing before any search', () => {
+    expect(updateCheckLabel({ phase: 'failed', manual: true }, false)).toBeNull()
+    expect(updateCheckLabel({ phase: 'idle', manual: false }, false)).toBeNull()
+  })
+})
+
+describe('runUpdateCheck [SPEC-3.10]', () => {
+  it('publishes its progress, clears the previous failure and refuses a second search meanwhile', async () => {
+    reportUpdateFailure('old cause')
+    const phases: string[] = []
+    const off = onUpdateChange(() => phases.push(getUpdateCheck().phase))
+    const worker = new FakeWorker('installing')
+    const update = vi.fn(() => Promise.resolve())
+    const search = runUpdateCheck(lookup({ update, installing: worker, reachable: true }), true)
+    expect(getUpdateFailure()).toBeNull()
+    await runUpdateCheck(lookup({ update, reachable: true }), true)
+    expect(update).toHaveBeenCalledTimes(1)
+    await Promise.resolve()
+    worker.moveTo('installed')
+    await search
+    off()
+    expect(phases).toEqual(['checking', 'downloading', 'downloaded'])
+    expect(getUpdateCheck()).toEqual({ phase: 'downloaded', manual: true })
+    // A downloaded version waits for the reload: nothing more to search.
+    await runUpdateCheck(lookup({ update, reachable: true }), true)
+    expect(update).toHaveBeenCalledTimes(1)
   })
 })
 

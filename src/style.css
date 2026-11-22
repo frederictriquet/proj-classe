@@ -668,6 +668,39 @@ dialog.settings-panel {
   font-size: 0.9rem;
 }
 
+/* [SPEC-3.10] Search for a new version: state and button. */
+.update-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.update-check[data-phase='checking']::before,
+.update-check[data-phase='downloading']::before {
+  content: '';
+  flex: none;
+  width: 0.9em;
+  height: 0.9em;
+  border: 2px solid rgb(255 255 255 / 35%);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: update-spin 0.9s linear infinite;
+}
+
+@keyframes update-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.check-update {
+  padding: 0.3rem 0.8rem;
+  border-color: var(--cream);
+  font-size: 0.9rem;
+}
+
 .discreet-link {
   margin-left: auto;
   color: rgb(255 255 255 / 55%);

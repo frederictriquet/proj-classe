@@ -9,7 +9,8 @@
 export const PALETTE = {
   /** Pupils, the snowman's coal eyes and hat, the dark doorway and cave, paper shadows. */
   ink: '#1B1B1B',
-  /** Eye whites, the white characters, Santa's beard and trims, snow caps, icicles, smoke, flakes. */
+  /** Eye whites, the white characters, Santa's beard and trims, the gingerbread man's icing, snow
+   *  caps, icicles, smoke, flakes. */
   cream: '#FBF6E9',
   /** Winter sky at dusk. */
   sky: '#5277B5',
@@ -21,7 +22,8 @@ export const PALETTE = {
   brown: '#6B3F1F',
   /** Santa's coat and hat, the elf's hat, the snowman's scarf, ornaments, the house door. */
   red: '#B8302A',
-  /** The red fox, the squirrel, the robin's breast, the snowman's nose, ornaments, the unlit star. */
+  /** The red fox, the squirrel, the robin's breast, the snowman's nose, the gingerbread man,
+   *  ornaments, the unlit star. */
   orange: '#D05A24',
   /** Lit windows, garland bulbs and star of the reward, the owl's eyes, the elf's bell. */
   yellow: '#F4C430',

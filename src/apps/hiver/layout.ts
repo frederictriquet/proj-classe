@@ -137,7 +137,7 @@ const TRUNK_BOUNDS: Rect = { x: TREE.base.left, y: TREE.top.y, width: TREE.base.
  * Covers are sized for the character that hides there, in world units: lying rabbit 100×130
  * (drift), squirrel 120×155 (hollow), lying fox 255×125 (bush), white fox 255×160 (rock), snowman
  * 150×220 (big drift), elf 110×170 (Christmas tree), crouching reindeer 250×180 (hill), snowy owl
- * 130×155 (trunk), Santa 135×220 (house).
+ * 130×155 (trunk), Santa 135×220 and the gingerbread man 129×177 (house).
  */
 export const HIDEOUTS: Readonly<Record<HideoutId, Hideout>> = {
   // Lying behind the small drift of the foreground.

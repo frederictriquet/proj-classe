@@ -1,4 +1,4 @@
-// [SPEC-8.1] [SPEC-8.2] [SPEC-8.3] [SPEC-16.2] The rigs of the ten characters of winter, drawn in
+// [SPEC-8.1] [SPEC-8.2] [SPEC-8.3] [SPEC-16.2] The rigs of the eleven characters of winter, drawn in
 // code in the paper cut-out style of the landscape with the shared builder (src/silence/rig.ts):
 // separate pieces moved by the shared animal model. The rabbit, the squirrel, the foxes and the
 // snowy owl follow the drawings of the forest and the farm, in the winter palette.
@@ -579,6 +579,77 @@ function owl(b: Builder, figure: Container): Rig {
   }
 }
 
+/** Icing: a cream zigzag `2 * half` long across `x, y`, along the direction `angle`. */
+function icing(x: number, y: number, half: number, angle: number, teeth = 4, depth = 4): Graphics {
+  const cos = Math.cos(angle)
+  const sin = Math.sin(angle)
+  const g = new Graphics()
+  for (let i = 0; i <= 2 * teeth; i++) {
+    const u = -half + (i * half) / teeth
+    const v = (i % 2 === 0 ? -1 : 1) * depth
+    const px = x + u * cos - v * sin
+    const py = y + u * sin + v * cos
+    if (i === 0) g.moveTo(px, py)
+    else g.lineTo(px, py)
+  }
+  return g.stroke({ width: 3.5, color: PALETTE.cream, cap: 'round', join: 'round' })
+}
+
+/**
+ * [SPEC-16.2] The gingerbread man: an orange biscuit seen almost from the front, with cream icing
+ * (zigzags at the wrists and the ankles, three buttons, a smile). Both arms come out from behind
+ * the body, so that he reads as one cut-out biscuit.
+ */
+function gingerbread(b: Builder, figure: Container): Rig {
+  const { orange, cream, ink } = PALETTE
+  const arm = (side: 1 | -1, dim: number): Container => {
+    const node = b.joint(figure, 24 * side, -100)
+    b.cut(node, turnedOval(42 * side, -86, 22, 12, 0.6 * side), orange, { dim })
+    node.addChild(icing(52 * side, -79, 9, 0.6 * side + Math.PI / 2, 3))
+    return node
+  }
+  const backArm = arm(-1, 0.18)
+  const frontArm = arm(1, 0)
+  const leg = (x: number, phase: number, dim: number) => {
+    const l = b.leg(figure, x, -48, 28, orange, phase, 0.45, { dim })
+    l.node.addChild(icing(x, -14, 11, 0, 3))
+    return l
+  }
+  const nearBack = leg(-15, 0, 0)
+  const legs = [leg(16, Math.PI, 0.18), nearBack]
+  farBehind(figure, legs, 1)
+  const body = b.joint(figure, 0, -82)
+  b.cut(body, oval(0, -82, 36, 40), orange)
+  body.addChild(new Graphics().circle(6, -90, 5.5).circle(8, -75, 5.5).circle(6, -60, 5.5).fill(cream))
+  const head = b.joint(figure, 4, -128)
+  b.cut(head, (g) => g.circle(6, -136, 34), orange)
+  const eyes = [b.eye(head, -4, -142, 7.5), b.eye(head, 18, -142, 7.5)]
+  for (const eye of eyes) eye.open.addChildAt(new Graphics().circle(0, 0, eye.radius + 2).fill(ink), 0)
+  head.addChild(new Graphics().moveTo(-2, -124).quadraticCurveTo(9, -112, 22, -124).stroke({ width: 4, color: cream, cap: 'round' }))
+  head.addChild(icing(6, -162, 18, 0, 4, 3))
+  return {
+    upper: [
+      { node: backArm, baseY: -100 },
+      { node: frontArm, baseY: -100 },
+      { node: body, baseY: -82 },
+      { node: head, baseY: -128 },
+    ],
+    drop: 20,
+    body,
+    head: { node: head, gain: 0.6 },
+    ears: [],
+    eyes,
+    legs,
+    scratchTilt: 0.15,
+    // Arms swing as he walks; « scratching », he waves with the front hand.
+    extra: (pose) => {
+      const swing = 0.35 * Math.min(1, pose.stride) * Math.sin(pose.gait)
+      backArm.rotation = -swing
+      frontArm.rotation = swing - pose.scratch * (1.5 + 0.3 * Math.sin(pose.scratchPhase))
+    },
+  }
+}
+
 /** [SPEC-16.2] Santa: red coat with cream fur and an ink belt, red trousers and ink boots, a cream
  *  beard, a skin face and a red hat with a cream pompom, its tip nodding like an ear. */
 function santa(b: Builder, figure: Container): Rig {
@@ -647,5 +718,6 @@ export const RIGS: Readonly<Record<AnimalId, RigFactory>> = {
   elf,
   reindeer,
   owl,
+  gingerbread,
   santa,
 }

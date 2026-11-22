@@ -1,4 +1,4 @@
-// [SPEC-16.4] [SPEC-8.5] [SPEC-8.3.2] Reward of « Hiver du silence », drawn with PixiJS: once the ten
+// [SPEC-16.4] [SPEC-8.5] [SPEC-8.3.2] Reward of « Hiver du silence », drawn with PixiJS: once the eleven
 // characters are settled, the bulbs of the garland light up one by one, with a steady light, the
 // star lights up at the top of the Christmas tree, the windows of the house light up and big flakes
 // fall slowly. It plays no sound [SPEC-16.1]. When it shows and how fast it fades are shared

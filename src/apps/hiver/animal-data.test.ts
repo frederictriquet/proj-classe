@@ -19,13 +19,13 @@ const domeTop = (d: { x: number; y: number; rx: number; ry: number }, x: number)
 
 describe('characters [SPEC-16.2]', () => {
   it('come out from the least to the most timid, the robin right after the snowman [SPEC-9.4.1] [SPEC-16.2.2]', () => {
-    expect(ANIMAL_IDS).toEqual(['rabbit', 'squirrel', 'redFox', 'whiteFox', 'snowman', 'robin', 'elf', 'reindeer', 'owl', 'santa'])
+    expect(ANIMAL_IDS).toEqual(['rabbit', 'squirrel', 'redFox', 'whiteFox', 'snowman', 'robin', 'elf', 'reindeer', 'owl', 'gingerbread', 'santa'])
   })
 
-  it('use the nine hideouts; the Christmas tree is shared by the robin and the elf', () => {
+  it('use the nine hideouts; the Christmas tree is shared by the robin and the elf, the house by the gingerbread man and Santa', () => {
     const used = ANIMAL_IDS.map((id) => ANIMALS[id].hideout)
     expect(new Set(used)).toEqual(new Set(HIDEOUT_IDS))
-    expect(used.filter((h, i) => used.indexOf(h) !== i)).toEqual(['fir'])
+    expect(used.filter((h, i) => used.indexOf(h) !== i)).toEqual(['fir', 'house'])
   })
 
   it.each(ANIMAL_IDS)('%s: path and place lie in the safe zone [SPEC-8.6]', (id) => {
@@ -70,11 +70,13 @@ describe('characters [SPEC-16.2]', () => {
   it('peeks and exits where the slot shows the character', () => {
     // Squirrel: wholly inside the hollow at the exit.
     expect(contains(TREE.hollow, boxAt('squirrel', ANIMALS.squirrel.exitIndex, 1))).toBe(true)
-    // Santa: inside the door or below the wall at the exit.
-    const santa = boxAt('santa', ANIMALS.santa.exitIndex, -1)
-    expect(santa.x).toBeGreaterThanOrEqual(HOUSE.door.x)
-    expect(santa.x + santa.width).toBeLessThanOrEqual(HOUSE.door.x + HOUSE.door.width)
-    expect(santa.y).toBeGreaterThanOrEqual(HOUSE.door.y)
+    // Santa and the gingerbread man: inside the door or below the wall at the exit.
+    for (const id of ['santa', 'gingerbread'] as const) {
+      const box = boxAt(id, ANIMALS[id].exitIndex, -1)
+      expect(box.x, id).toBeGreaterThanOrEqual(HOUSE.door.x)
+      expect(box.x + box.width, id).toBeLessThanOrEqual(HOUSE.door.x + HOUSE.door.width)
+      expect(box.y, id).toBeGreaterThanOrEqual(HOUSE.door.y)
+    }
     // White fox: clear of the rock body, the slab and the icicles at the exit; at the peek, below
     // the icicles [SPEC-16.5.1].
     const fox = boxAt('whiteFox', ANIMALS.whiteFox.exitIndex, 1)
@@ -101,6 +103,19 @@ describe('characters [SPEC-16.2]', () => {
     // The red fox's head past the right edge of the bush.
     const fox = ANIMALS.redFox.path[1]!
     expect(fox.x + 100).toBeGreaterThan(BUSH.x + BUSH.rx * 0.9)
+  })
+
+  // [SPEC-16.2] The gingerbread man peeks into the doorway, then settles on the snow below the wall,
+  // right of Santa's doorstep, clear of Santa's way out, his hand at most over the edge of the
+  // Christmas tree.
+  it('gingerbread man: peeks into the doorway, settles between the doorstep and the Christmas tree', () => {
+    const peek = boxAt('gingerbread', ANIMALS.gingerbread.peekIndex, -1)
+    expect(peek.x).toBeLessThan(HOUSE.door.x + HOUSE.door.width - 40)
+    const place = placeBox('gingerbread')
+    expect(place.y + place.height).toBeGreaterThan(HOUSE.wall.y + HOUSE.wall.height)
+    // Santa walks out at x 955 and stays on his doorstep.
+    for (const p of ANIMALS.santa.path.slice(ANIMALS.santa.exitIndex)) expect(intersects(place, drawingBox(ANIMALS.santa, p.x, p.y, -1))).toBe(false)
+    for (let y = place.y; y <= place.y + place.height; y += 2) expect(place.x + place.width, `at ${y}`).toBeLessThan(1260 - firHalfWidth(y) + 30)
   })
 
   // [SPEC-16.5.1] [SPEC-16.5.2] Places: Santa on his doorstep, against the dark doorway, not in

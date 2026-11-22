@@ -3,12 +3,21 @@
 // HostCommand only. With two screens it also offers « Projeter », shows where the scene is and,
 // while the scene runs an app, becomes the remote: app in progress, « Retour au menu », settings
 // and live level [SPEC-5.5] [SPEC-7.5]. It also shows the version, the update messages and the
-// offline witness [SPEC-3.4] [SPEC-3.6] [SPEC-3.7].
+// offline witness [SPEC-3.4] [SPEC-3.6] [SPEC-3.7], and the search for a new version [SPEC-3.10].
 import type { AppRegistry } from '../apps/registry'
 import { isInstalledApp } from '../pwa/display-mode'
 import { canInstall, onInstallAvailabilityChange, promptInstall } from '../pwa/install'
 import { OFFLINE_NOTICE, offlineLabel, watchOfflineStatus } from '../pwa/offline-status'
-import { getUpdateFailure, onUpdateChange, updateFailureText, updateInstalledRemaining } from '../boot/update'
+import {
+  getUpdateCheck,
+  getUpdateFailure,
+  onUpdateChange,
+  updateCheckBusy,
+  updateCheckLabel,
+  updateFailureText,
+  updateInstalledRemaining,
+} from '../boot/update'
+import { canCheckForUpdate, checkForUpdateNow, onSwRegistrationChange } from '../boot/register'
 import { VERSION_LABEL } from '../version'
 import { errorMessage } from '../errors'
 import type { HostLink, HostState } from '../host/protocol'
@@ -95,6 +104,12 @@ export function renderMenu(
   const version = document.createElement('span')
   version.className = 'app-version'
   version.textContent = `Version ${VERSION_LABEL}`
+  // [SPEC-3.10] Search for a new version: where it stands, and a button to run it again.
+  const updateCheck = document.createElement('span')
+  updateCheck.className = 'update-check'
+  updateCheck.setAttribute('role', 'status')
+  const checkUpdate = button('Rechercher une mise à jour', 'check-update')
+  checkUpdate.addEventListener('click', () => void checkForUpdateNow(true))
 
   // [SPEC-5.3] [SPEC-5.4] [SPEC-5.6] Where the scene is, and what happened to it.
   const screenBar = document.createElement('div')
@@ -193,7 +208,7 @@ export function renderMenu(
   diagnostic.className = 'discreet-link'
   diagnostic.href = '#diagnostic'
   diagnostic.textContent = 'Diagnostic'
-  footer.append(offlineNotice, witness, version, diagnostic)
+  footer.append(offlineNotice, witness, version, updateCheck, checkUpdate, diagnostic)
 
   menu.append(header, updateInstalled, updateFailure, screenBar, notice, control, grid, empty, footer)
   root.append(menu)
@@ -213,9 +228,19 @@ export function renderMenu(
     updateInstalled.hidden = remaining === 0
     window.clearTimeout(installedTimer)
     if (remaining > 0) installedTimer = window.setTimeout(showUpdate, remaining)
+    // [SPEC-3.10.1] A downloaded version waits for the menu while the scene runs an app.
+    const check = getUpdateCheck()
+    const label = updateCheckLabel(check, state !== undefined && state.phase !== 'menu')
+    updateCheck.hidden = label === null
+    updateCheck.textContent = label ?? ''
+    updateCheck.dataset.phase = check.phase
+    checkUpdate.hidden = !canCheckForUpdate()
+    checkUpdate.disabled = updateCheckBusy(check)
   }
   showUpdate()
   const offUpdate = onUpdateChange(showUpdate)
+  // [SPEC-3.10.2] The button shows once the service worker is registered.
+  const offRegistration = onSwRegistrationChange(showUpdate)
 
   const showInstall = () => {
     install.hidden = isInstalledApp() || !canInstall()
@@ -270,6 +295,7 @@ export function renderMenu(
     noticeText.textContent = next.notice?.message ?? ''
     notice.dataset.kind = next.notice?.kind ?? ''
     render()
+    showUpdate()
     if (backToMenu) {
       // Keyboard flow: back on the tile that was launched.
       tiles.find((tile) => tile.dataset.appId === lastLaunched)?.focus()
@@ -305,6 +331,7 @@ export function renderMenu(
     document.removeEventListener('keydown', onKey)
     offWitness()
     offUpdate()
+    offRegistration()
     window.clearTimeout(installedTimer)
     unsubscribe()
     offProjection?.()

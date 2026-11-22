@@ -1,4 +1,4 @@
-// [SPEC-4.2] [SPEC-16] « Hiver du silence »: the winter landscape, its ten characters and the lit
+// [SPEC-4.2] [SPEC-16] « Hiver du silence »: the winter landscape, its eleven characters and the lit
 // Christmas tree, run by the shared loop of the activities of silence [SPEC-9.8].
 import { startSilence } from '../../silence/app'
 import type { AppFactory } from '../types'

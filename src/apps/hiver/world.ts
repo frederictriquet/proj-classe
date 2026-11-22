@@ -1,5 +1,5 @@
 // [SPEC-9.8] [SPEC-16] « Hiver du silence » as the shared code of the activities of silence sees it:
-// the ten characters of the winter landscape, their rigs, the landscape, the reward and the colours
+// the eleven characters of the winter landscape, their rigs, the landscape, the reward and the colours
 // of the palette.
 import type { SilenceWorld } from '../../silence/world'
 import { RIGS } from './animal-art'

@@ -1,7 +1,7 @@
 import { registerSW } from 'virtual:pwa-register'
 import { errorMessage } from '../errors'
 import { checkOfflineCache } from '../pwa/precache-check'
-import { lookForUpdate, pageIsOutdated, reportUpdateFailure } from './update'
+import { pageIsOutdated, reportUpdateFailure, runUpdateCheck, type UpdateLookup } from './update'
 
 export type SwRegistrationState =
   | { kind: 'unsupported' }
@@ -51,8 +51,10 @@ export function registerServiceWorker(onNewVersion: () => void): void {
     // Replaces the plugin's immediate reload [SPEC-3.3].
     onNeedReload: onNewVersion,
     onRegisteredSW: (scriptUrl, registration) => {
+      // Set before the state, so that its listeners can already offer the button [SPEC-3.10.2].
+      if (registration) updateLookup = lookupFor(scriptUrl, registration)
       setState({ kind: 'registered', scriptUrl, registration })
-      if (registration) checkForUpdate(scriptUrl, registration)
+      void checkForUpdateNow(false)
     },
     onRegisterError: (error: unknown) => setState({ kind: 'error', message: errorMessage(error) }),
   })
@@ -71,10 +73,22 @@ function checkFirstWorker(onNewVersion: () => void): void {
   )
 }
 
-/** [SPEC-3.3] [SPEC-3.6] Asks the server for a new version once per launch and reports any
- *  failure other than the absence of network. */
-function checkForUpdate(scriptUrl: string, registration: ServiceWorkerRegistration): void {
-  lookForUpdate({
+let updateLookup: UpdateLookup | undefined
+
+/** [SPEC-3.10.2] True once the service worker is registered: a search for a new version can run. */
+export function canCheckForUpdate(): boolean {
+  return updateLookup !== undefined
+}
+
+/** [SPEC-3.3] [SPEC-3.6] [SPEC-3.10] Asks the server for a new version: once per launch, and when
+ *  the adult clicks « Rechercher une mise à jour » (`manual`). A version found applies through the
+ *  UpdateGate, never by a reload from here. */
+export function checkForUpdateNow(manual: boolean): Promise<void> {
+  return updateLookup ? runUpdateCheck(updateLookup, manual) : Promise.resolve()
+}
+
+function lookupFor(scriptUrl: string, registration: ServiceWorkerRegistration): UpdateLookup {
+  return {
     update: () => registration.update(),
     installing: () => registration.installing,
     // Any HTTP answer proves the network is there; only a failed fetch means it is not.
@@ -82,10 +96,5 @@ function checkForUpdate(scriptUrl: string, registration: ServiceWorkerRegistrati
       () => true,
       () => false,
     ),
-  }).then(
-    (cause) => {
-      if (cause) reportUpdateFailure(cause)
-    },
-    (error: unknown) => reportUpdateFailure(errorMessage(error)),
-  )
+  }
 }
